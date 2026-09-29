@@ -50,33 +50,38 @@ $app->post('/login', function (Request $request, Response $response) use ($authS
 		$mainDb = Database::getMainDbName();
 		$login = R::getRow("SELECT * FROM `{$mainDb}`.`secure_login` WHERE `email` = ?", [$user_id]);
 
-		if ($login == null) {
-			$return = array('status' => 'false', 'Message' => 'user can not be found.', 'data' => 'Please enter a valid user!');
+		if ($login === null || !$authService->verifyPassword($pwd, $login['password'])) {
+			$return = array('status' => 'false', 'Message' => 'Invalid email or password', 'data' => null);
 			return $response->withStatus(401)
 				->withHeader('Content-Type', 'application/json')
 				->write(json_encode($return));
-		} else {
-			if ($authService->verifyPassword($pwd, $login['password'])) {
-				$jwt = $authService->generateToken([
-					'email' => $login['email'],
-					'ref_id' => $login['memberid']
-				]);
-
-				$return = array('status' => 'success', 'Message' => 'user found.', 'data' => $login, 'token' => $jwt);
-
-				return $response->withStatus(200)
-					->withHeader('Content-Type', 'application/json')
-					->write(json_encode($return));
-			} else {
-				$return = array('status' => 'Failed', 'Message' => 'Incorrect Password!', 'data' => null);
-
-				return $response->withStatus(400)
-					->withHeader('Content-Type', 'application/json')
-					->write(json_encode($return));
-			}
 		}
+
+		// Rehash legacy password to modern bcrypt if needed
+		if ($authService->needsRehash($login['password'])) {
+			$newHash = $authService->hashPassword($pwd);
+			R::exec("UPDATE `{$mainDb}`.`secure_login` SET `password` = ? WHERE `memberid` = ?", [$newHash, $login['memberid']]);
+		}
+
+		$jwt = $authService->generateToken([
+			'email' => $login['email'],
+			'ref_id' => $login['memberid']
+		]);
+
+		$safeUserData = [
+			'email'  => $login['email'],
+			'ref_id' => $login['memberid'],
+			'type'   => $login['type'] ?? 'hospital'
+		];
+
+		$return = array('status' => 'success', 'Message' => 'user found.', 'data' => $safeUserData, 'token' => $jwt);
+
+		return $response->withStatus(200)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("Login error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
@@ -85,34 +90,95 @@ $app->post('/login', function (Request $request, Response $response) use ($authS
 	}
 });
 
-$app->post('/add/user', function (Request $request, Response $response) use ($authService) {
+$hospitalService = new \App\Services\HospitalService();
+
+$requireSupervisorOrToken = function ($request, $response, $next) use ($authService, $authToken) {
+	$authHeader = $request->getHeaderLine("Authorization");
+
+	if ($authHeader && preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		try {
+			$decoded = $authService->decodeToken($matches[1]);
+			$request = $request->withAttribute('user', $decoded);
+			if (($decoded['type'] ?? '') === 'supervisor') {
+				return $next($request, $response);
+			}
+		} catch (Exception $e) {
+			// Fall through
+		}
+	}
+
+	$tokenToCheck = $authHeader;
+	if (preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		$tokenToCheck = $matches[1];
+	}
+	if (!empty($tokenToCheck) && hash_equals((string)$authToken, (string)$tokenToCheck)) {
+		return $next($request, $response);
+	}
+
+	return $response->withStatus(401)
+		->withHeader('Content-Type', 'application/json')
+		->write(json_encode([
+			'status'  => 'error',
+			'message' => 'Unauthorized: Supervisor access or valid authorization token required'
+		]));
+};
+
+$app->post('/add/user', function (Request $request, Response $response) use ($authService, $hospitalService) {
 
 	// Personal information
-	$firstname = $request->getParam('firstname');
-	$lastname = $request->getParam('lastname');
-	$phone = $request->getParam('phone');
-	$email = $request->getParam('email');
-	$designation = $request->getParam('designation');
-	$raw_pwd = $request->getParam('password');
-	$pwd = $authService->hashPassword($raw_pwd);
+	$firstname   = trim((string)$request->getParam('firstname'));
+	$lastname    = trim((string)$request->getParam('lastname'));
+	$phone       = trim((string)$request->getParam('phone'));
+	$email       = trim((string)$request->getParam('email'));
+	$designation = trim((string)$request->getParam('designation'));
+	$raw_pwd     = (string)$request->getParam('password');
 
-	$contactPerson = $firstname . ' ' . $lastname;
+	// Input validation (Item 12)
+	if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'A valid email address is required']));
+	}
+
+	if (strlen($raw_pwd) < 8) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Password must be at least 8 characters long']));
+	}
+
+	// Reject duplicate email
+	$existing = R::findOne('user', 'email = ?', [$email]);
+	if ($existing) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Email is already registered']));
+	}
+
+	$pwd = $authService->hashPassword($raw_pwd);
+	$contactPerson = trim($firstname . ' ' . $lastname);
 
 	// Hospital information
-	$orgname = $request->getParam('hos_name');
-	$address_name = $request->getParam('address');
-	$address_name1 = $request->getParam('address_1');
-	$hos_type = $request->getParam('type');
-	$city = $request->getParam('city');
-	$state = $request->getParam('states');
-	$bed = $request->getParam('bed');
-	$depart = $request->getParam('depart');
-	$oSource = $request->getParam('oSource');
-	$power = $request->getParam('power');
-	$technical = $request->getParam('technical');
+	$hospitalData = [
+		'name'          => $request->getParam('hos_name') ?? $request->getParam('name'),
+		'address_1'     => $request->getParam('address'),
+		'address_2'     => $request->getParam('address_1'),
+		'type'          => $request->getParam('type'),
+		'city'          => $request->getParam('city'),
+		'state'         => $request->getParam('states') ?? $request->getParam('state'),
+		'bed'           => $request->getParam('bed'),
+		'depart'        => $request->getParam('depart'),
+		'oSource'       => $request->getParam('oSource'),
+		'power'         => $request->getParam('power'),
+		'technical'     => $request->getParam('technical'),
+		'contactPerson' => $contactPerson,
+		'designation'   => $designation,
+		'phone'         => $phone,
+		'email'         => $email
+	];
 
 	try {
-		$org = saveOrg($orgname, $address_name, $address_name1, $hos_type, $city, $state, $bed, $depart, $oSource, $power, $technical, $contactPerson, $designation, $phone, $email);
+		// Unified HospitalService::createHospital (Item 23)
+		$org = $hospitalService->createHospital($hospitalData);
 
 		saveUser($email, $pwd, $org, 'hospital');
 
@@ -122,43 +188,72 @@ $app->post('/add/user', function (Request $request, Response $response) use ($au
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("User registration error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
 	} finally {
 		R::close();
 	}
-});
+})->add($requireSupervisorOrToken);
 
-$app->post('/supervisor/add/user', function (Request $request, Response $response) use ($authService) {
+$app->post('/supervisor/add/user', function (Request $request, Response $response) use ($authService, $hospitalService) {
 
 	// Personal information
-	$firstname = $request->getParam('firstname');
-	$lastname = $request->getParam('lastname');
-	$phone = $request->getParam('phone');
-	$email = $request->getParam('email');
-	$designation = $request->getParam('designation');
-	$raw_pwd = $request->getParam('password');
-	$pwd = $authService->hashPassword($raw_pwd);
+	$firstname   = trim((string)$request->getParam('firstname'));
+	$lastname    = trim((string)$request->getParam('lastname'));
+	$phone       = trim((string)$request->getParam('phone'));
+	$email       = trim((string)$request->getParam('email'));
+	$designation = trim((string)$request->getParam('designation'));
+	$raw_pwd     = (string)$request->getParam('password');
 
-	$contactPerson = $firstname . ' ' . $lastname;
+	// Input validation (Item 12)
+	if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'A valid email address is required']));
+	}
+
+	if (strlen($raw_pwd) < 8) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Password must be at least 8 characters long']));
+	}
+
+	// Reject duplicate email
+	$existing = R::findOne('user', 'email = ?', [$email]);
+	if ($existing) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Email is already registered']));
+	}
+
+	$pwd = $authService->hashPassword($raw_pwd);
+	$contactPerson = trim($firstname . ' ' . $lastname);
 
 	// Hospital information
-	$orgname = $request->getParam('hos_name');
-	$address_name = $request->getParam('address');
-	$address_name1 = $request->getParam('address_1');
-	$hos_type = $request->getParam('type');
-	$city = $request->getParam('city');
-	$state = $request->getParam('states');
-	$bed = $request->getParam('bed');
-	$depart = $request->getParam('depart');
-	$oSource = $request->getParam('oSource');
-	$power = $request->getParam('power');
-	$technical = $request->getParam('technical');
+	$hospitalData = [
+		'name'          => $request->getParam('hos_name') ?? $request->getParam('name'),
+		'address_1'     => $request->getParam('address'),
+		'address_2'     => $request->getParam('address_1'),
+		'type'          => $request->getParam('type'),
+		'city'          => $request->getParam('city'),
+		'state'         => $request->getParam('states') ?? $request->getParam('state'),
+		'bed'           => $request->getParam('bed'),
+		'depart'        => $request->getParam('depart'),
+		'oSource'       => $request->getParam('oSource'),
+		'power'         => $request->getParam('power'),
+		'technical'     => $request->getParam('technical'),
+		'contactPerson' => $contactPerson,
+		'designation'   => $designation,
+		'phone'         => $phone,
+		'email'         => $email
+	];
 
 	try {
-		$org = saveOrg($orgname, $address_name, $address_name1, $hos_type, $city, $state, $bed, $depart, $oSource, $power, $technical, $contactPerson, $designation, $phone, $email);
+		// Unified HospitalService::createHospital (Item 23)
+		$org = $hospitalService->createHospital($hospitalData);
 
 		saveUser($email, $pwd, $org, 'supervisor');
 
@@ -168,46 +263,18 @@ $app->post('/supervisor/add/user', function (Request $request, Response $respons
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("Supervisor registration error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
 	} finally {
 		R::close();
 	}
-});
+})->add($requireSupervisorOrToken);
 
 
 $app->run();
-
-function saveOrg($orgname, $address_name, $address_name1, $hos_type, $city, $state, $bed, $depart, $oSource, $power, $technical, $contactPerson, $designation, $phone, $email)
-{
-
-	$hospital = R::dispense('hospital');
-
-	$hospital->name = $orgname;
-	$hospital->addressLine1 = $address_name;
-	$hospital->addressLine2 = $address_name1;
-	$hospital->city = $city;
-	$hospital->state = $state;
-	$hospital->hospitals_type = $hos_type;
-	$hospital->bedCap = $bed;
-	$hospital->departs = $depart;
-	$hospital->oxygenSource = $oSource;
-	$hospital->powerBackup = $power;
-	$hospital->technicals = $technical;
-	$hospital->powerBackup = $power;
-	$hospital->contactPerson = $contactPerson;
-	$hospital->contactRole = $designation;
-	$hospital->contactPhone = $phone;
-	$hospital->contactEmail = $email;
-
-	//retrive id
-	$id = R::store($hospital);
-
-	//return store id  
-	return $id;
-}
 
 function saveUser($email, $pwd, $org, $privileges)
 {
@@ -218,9 +285,9 @@ function saveUser($email, $pwd, $org, $privileges)
 	$user->privileges = $privileges;
 	$user->org_id = $org;
 
-	//retrive id
+	//retrieve id
 	$id = R::store($user);
 
-	//return store id  
+	//return stored id  
 	return $id;
 }

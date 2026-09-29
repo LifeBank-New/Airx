@@ -8,11 +8,16 @@ use Exception;
 
 class AuthService
 {
-    private string $secretKey;
+    /** @var string */
+    private $secretKey;
 
     public function __construct(?string $secretKey = null)
     {
-        $this->secretKey = $secretKey ?? $_ENV['JWT_SECRET'] ?? $_ENV['secretkey'] ?? 'your_super_secret_key_here';
+        $key = $secretKey ?? $_ENV['JWT_SECRET'] ?? $_ENV['secretkey'] ?? null;
+        if (empty($key) || strlen($key) < 16 || $key === 'your_super_secret_key_here') {
+            throw new \RuntimeException('JWT_SECRET must be configured with a secure key (minimum 16 characters) and cannot use the default placeholder.');
+        }
+        $this->secretKey = $key;
     }
 
     /**
@@ -41,7 +46,7 @@ class AuthService
     }
 
     /**
-     * Verify password supporting password_hash (bcrypt/argon2), SHA-512, and legacy MD5.
+     * Verify password supporting password_hash (bcrypt/argon2), SHA-512, and legacy MD5 using timing-safe comparisons.
      */
     public function verifyPassword(string $password, string $storedHash): bool
     {
@@ -49,15 +54,23 @@ class AuthService
             return true;
         }
 
-        if (hash('sha512', $password) === $storedHash) {
+        if (hash_equals(hash('sha512', $password), $storedHash)) {
             return true;
         }
 
-        if (md5($password) === $storedHash) {
+        if (hash_equals(md5($password), $storedHash)) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Check if a stored password hash requires rehashing to a modern algorithm.
+     */
+    public function needsRehash(string $storedHash): bool
+    {
+        return password_needs_rehash($storedHash, PASSWORD_DEFAULT);
     }
 
     /**

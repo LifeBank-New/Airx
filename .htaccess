@@ -1,4 +1,17 @@
 RewriteEngine On
+
+# Block direct access to sensitive files and directories
+<FilesMatch "^(\.env|composer\.(json|lock)|README\.md|LICENSE)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to hidden dotfiles and directories (e.g. .git, .env)
+RewriteRule (^|/)\. - [F]
+
+# Deny direct access to vendor directory
+RewriteRule ^vendor/.*$ - [F,L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

@@ -10,16 +10,25 @@ if (!class_exists('Dotenv\Dotenv')) {
 	}
 }
 
-if (class_exists('Dotenv\Dotenv')) {
-	$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2));
-	$dotenv->safeLoad();
-}
+// Delegate to central Database configuration
+if (class_exists('App\Config\Database')) {
+	\App\Config\Database::init();
+} else {
+	if (class_exists('Dotenv\Dotenv')) {
+		$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2));
+		$dotenv->safeLoad();
+	}
+	date_default_timezone_set('Africa/Lagos');
+	$dbhost = $_ENV['DB_HOST'] ?? $_ENV['dbhost'] ?? 'localhost';
+	$dbuser = $_ENV['DB_USER'] ?? $_ENV['dbuser'] ?? 'root';
+	$dbpass = $_ENV['DB_PASS'] ?? $_ENV['dbpass'] ?? '';
+	$dbname = $_ENV['DB_NAME'] ?? $_ENV['dbname'] ?? 'airx';
 
-$dbhost = $_ENV['DB_HOST'] ?? $_ENV['dbhost'] ?? 'localhost';
-$dbuser = $_ENV['DB_USER'] ?? $_ENV['dbuser'] ?? 'root';
-$dbpass = $_ENV['DB_PASS'] ?? $_ENV['dbpass'] ?? '';
-$dbname = $_ENV['DB_NAME'] ?? $_ENV['dbname'] ?? 'DatabaseName';
-
-if (!R::testConnection()) {
-	R::setup('mysql:host=' . $dbhost . ';dbname=' . $dbname, $dbuser, $dbpass);
+	if (!R::testConnection()) {
+		R::setup('mysql:host=' . $dbhost . ';dbname=' . $dbname, $dbuser, $dbpass);
+	}
+	$appEnv = strtolower($_ENV['APP_ENV'] ?? 'development');
+	if ($appEnv === 'production') {
+		R::freeze(true);
+	}
 }

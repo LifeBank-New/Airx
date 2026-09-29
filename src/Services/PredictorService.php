@@ -11,16 +11,16 @@ class PredictorService
      */
     public function calculateNeeds(array $params): float
     {
-        $peaditric  = (float)($params['peaditric'] ?? 0);
-        $malaria    = (float)($params['malaria'] ?? 0);
-        $intensive  = (float)($params['intensive'] ?? 0);
-        $accident   = (float)($params['accident'] ?? 0);
-        $theatre    = (float)($params['theatre'] ?? 0);
-        $maternity  = (float)($params['materinity'] ?? 0);
-        $typhoid    = (float)($params['typhoid'] ?? 0);
-        $diabetes   = (float)($params['diabetes'] ?? 0);
+        $peaditric  = max(0.0, (float)($params['peaditric'] ?? $params['pediatric'] ?? 0));
+        $malaria    = max(0.0, (float)($params['malaria'] ?? 0));
+        $intensive  = max(0.0, (float)($params['intensive'] ?? 0));
+        $accident   = max(0.0, (float)($params['accident'] ?? 0));
+        $theatre    = max(0.0, (float)($params['theatre'] ?? 0));
+        $maternity  = max(0.0, (float)($params['materinity'] ?? $params['maternity'] ?? 0));
+        $typhoid    = max(0.0, (float)($params['typhoid'] ?? 0));
+        $diabetes   = max(0.0, (float)($params['diabetes'] ?? 0));
 
-        return (
+        $needs = (
             13.01
             + (3.5123 * $peaditric)
             + (5.4793 * $malaria)
@@ -31,6 +31,8 @@ class PredictorService
             + ($typhoid * -10.1190)
             + ($diabetes * -6.0203)
         );
+
+        return max(0.0, round($needs, 2));
     }
 
     /**
@@ -38,16 +40,16 @@ class PredictorService
      */
     public function calculateSupervisorNeeds(array $params): float
     {
-        $peaditric  = (float)($params['peaditric'] ?? 0);
-        $malaria    = (float)($params['malaria'] ?? 0);
-        $intensive  = (float)($params['intensive'] ?? 0);
-        $accident   = (float)($params['accident'] ?? 0);
-        $theatre    = (float)($params['theatre'] ?? 0);
-        $maternity  = (float)($params['materinity'] ?? 0);
-        $typhoid    = (float)($params['typhoid'] ?? 0);
-        $diabetes   = (float)($params['diabetes'] ?? 0);
+        $peaditric  = max(0.0, (float)($params['peaditric'] ?? $params['pediatric'] ?? 0));
+        $malaria    = max(0.0, (float)($params['malaria'] ?? 0));
+        $intensive  = max(0.0, (float)($params['intensive'] ?? 0));
+        $accident   = max(0.0, (float)($params['accident'] ?? 0));
+        $theatre    = max(0.0, (float)($params['theatre'] ?? 0));
+        $maternity  = max(0.0, (float)($params['materinity'] ?? $params['maternity'] ?? 0));
+        $typhoid    = max(0.0, (float)($params['typhoid'] ?? 0));
+        $diabetes   = max(0.0, (float)($params['diabetes'] ?? 0));
 
-        return (
+        $needs = (
             13.1414
             + (3.7123 * $peaditric)
             + (5.4793 * $malaria)
@@ -58,6 +60,8 @@ class PredictorService
             + ($typhoid * -10.1190)
             + ($diabetes * -6.0203)
         );
+
+        return max(0.0, round($needs, 2));
     }
 
     /**
@@ -68,9 +72,22 @@ class PredictorService
         $time = $timestamp ?? time();
         $prediction = R::dispense('predictions');
         $prediction->hospital_id = $hospitalId;
+        $prediction->hospitalID = $hospitalId;
         $prediction->predictions = $needs;
         $prediction->tym = $time;
 
         return (int)R::store($prediction);
+    }
+
+    /**
+     * Predict monthly oxygen requirement using historical consumption and weather features.
+     */
+    public function predictMonthlyNeed(array $history, float $locationFactor = 1.0): array
+    {
+        if (!function_exists('predictMonthlyOxygenNeed')) {
+            require_once dirname(__DIR__, 2) . '/include/functions/helper.php';
+        }
+
+        return predictMonthlyOxygenNeed($history, $locationFactor);
     }
 }

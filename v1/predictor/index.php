@@ -1,3 +1,4 @@
+<?php 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 use App\Services\AuthService;
@@ -68,9 +69,9 @@ $app->get('/', function (Request $request, Response $response, array $args) use 
 
 	$authorization_header = $request->getHeader("Authorization");
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
+	if (empty($authorization_header) || !hash_equals((string)$authToken, (string)$authorization_header[0])) {
 
-		$return =  array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+		$return =  array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Header is missing or invalid', 'data' => 'method allowed post');
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
@@ -84,19 +85,45 @@ $app->get('/', function (Request $request, Response $response, array $args) use 
 		->write(json_encode($return));
 });
 
-$app->post('/run', function (Request $request, Response $response) use ($authToken, $predictorService) {
+$app->post('/run', function (Request $request, Response $response) use ($authToken, $authService, $predictorService) {
 
-	$authorization_header = $request->getHeader("Authorization");
-	$hospitalid = (int)$request->getParam('hospitalid');
-	$time = time();
+	$authHeader = $request->getHeaderLine("Authorization");
+	$user = null;
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
-		$return = array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+	if ($authHeader && preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		try {
+			$user = $authService->decodeToken($matches[1]);
+		} catch (Exception $e) {
+			// Fall through
+		}
+	}
+
+	$tokenToCheck = $authHeader;
+	if (preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		$tokenToCheck = $matches[1];
+	}
+
+	if (empty($user) && (empty($tokenToCheck) || !hash_equals((string)$authToken, (string)$tokenToCheck))) {
+		$return = array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing or invalid', 'data' => 'method allowed post');
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	}
+
+	$hospitalid = (int)$request->getParam('hospitalid');
+	if ($hospitalid <= 0 && !empty($user['ref_id'])) {
+		$hospitalid = (int)$user['ref_id'];
+	}
+
+	// Guard against hospital 0 (Item 25)
+	if ($hospitalid <= 0) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'Message' => 'Valid hospital ID is required']));
+	}
+
+	$time = time();
 
 	try {
 		$needs = $predictorService->calculateNeeds($request->getParams());
@@ -108,7 +135,8 @@ $app->post('/run', function (Request $request, Response $response) use ($authTok
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("Predictor run error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
@@ -117,12 +145,29 @@ $app->post('/run', function (Request $request, Response $response) use ($authTok
 	}
 });
 
-$app->post('/run/supervisor', function (Request $request, Response $response) use ($authToken, $predictorService) {
+$app->post('/run/supervisor', function (Request $request, Response $response) use ($authToken, $authService, $predictorService) {
 
-	$authorization_header = $request->getHeader("Authorization");
+	$authHeader = $request->getHeaderLine("Authorization");
+	$user = null;
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
-		$return = array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+	if ($authHeader && preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		try {
+			$user = $authService->decodeToken($matches[1]);
+		} catch (Exception $e) {
+			// Fall through
+		}
+	}
+
+	$tokenToCheck = $authHeader;
+	if (preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		$tokenToCheck = $matches[1];
+	}
+
+	$isSupervisor = $user && (($user['type'] ?? '') === 'supervisor');
+	$hasToken = !empty($tokenToCheck) && hash_equals((string)$authToken, (string)$tokenToCheck);
+
+	if (!$isSupervisor && !$hasToken) {
+		$return = array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Unauthorized: Supervisor access required', 'data' => 'method allowed post');
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
@@ -138,7 +183,8 @@ $app->post('/run/supervisor', function (Request $request, Response $response) us
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("Predictor run/supervisor error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
@@ -182,12 +228,10 @@ $app->get('/hospitals', function (Request $request, Response $response) use ($ho
 	}
 })->add($authMiddleware);
 
-$app->get('/hospital/predict', function (Request $request, Response $response) {
+$app->get('/hospital/predict', function (Request $request, Response $response) use ($predictorService) {
 	try {
 		$user = $request->getAttribute('user');
-		$refid = $user['ref_id'] ?? null;
-
-		// $refid = 416752380;
+		$refid = $user['ref_id'] ?? $request->getParam('hospital_id') ?? $request->getParam('ref_id') ?? null;
 
 		if (!$refid) {
 			return $response->withStatus(400)
@@ -200,7 +244,7 @@ $app->get('/hospital/predict', function (Request $request, Response $response) {
 
 		// Validate and sanitize input
 		$refid = filter_var($refid, FILTER_VALIDATE_INT);
-		if ($refid === false) {
+		if ($refid === false || $refid <= 0) {
 			return $response->withStatus(400)
 				->withHeader('Content-Type', 'application/json')
 				->write(json_encode([
@@ -209,65 +253,73 @@ $app->get('/hospital/predict', function (Request $request, Response $response) {
 				]));
 		}
 
-		$state = R::getCell("SELECT user_info.state FROM `lifebank_plus`.`secure_login` LEFT JOIN `lifebank_plus`.user_info on user_info.ref_id = secure_login.memberid WHERE memberid = ?", [$refid]);
+		$mainDb = Database::getMainDbName();
+		$state = R::getCell(
+			"SELECT user_info.state FROM `{$mainDb}`.`secure_login` LEFT JOIN `{$mainDb}`.user_info ON user_info.ref_id = secure_login.memberid WHERE memberid = ?",
+			[$refid]
+		);
 
-		// Use prepared statements properly
+		// Fetch latest 12 months of historical consumption from completed oxygen orders
 		$history = R::getAll("
             SELECT 
                 DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') AS month,
                 SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters
-            FROM lifebank_plus.oxygen_order AS o
-            LEFT JOIN lifebank_plus.oxygen AS ox ON o.product = ox.id
+            FROM `{$mainDb}`.oxygen_order AS o
+            LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id
             WHERE o.order_by = ?
-            GROUP BY YEAR(FROM_UNIXTIME(o.tym)), MONTH(FROM_UNIXTIME(o.tym))
-            ORDER BY FROM_UNIXTIME(o.tym) ASC
+            GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m')
+            ORDER BY month DESC
             LIMIT 12
         ", [$refid]);
 
+		// Fallback to internal consumption log if no orders exist
 		if (empty($history)) {
-			$history = R::getAll("SELECT DATE_FORMAT(date_used, '%Y-%m') AS month, SUM(estimate_need) AS total_cubic_meters FROM `data` WHERE hospitalID = ? GROUP BY month ORDER BY month ASC LIMIT 12", [$refid]);
-		} else {
-			$result = [
-				'status' => 'success',
-				'description' => 'Advice for Optimal operation efficeny of the hospital',
-				'hospital_id' => $refid,
-				'data' => [
-					'prediction_cubic_meters' =>  2,
-					'method' => "advice",
-					'accuracy' => 0.1,
-					'history_count' => 0
-				]
-			];
-			return $response->withStatus(200)
-				->withHeader('Content-Type', 'application/json')
-				->write(json_encode($result));
+			$history = R::getAll(
+				"SELECT DATE_FORMAT(date_used, '%Y-%m') AS month, SUM(estimate_need) AS total_cubic_meters FROM `data` WHERE hospitalID = ? GROUP BY DATE_FORMAT(date_used, '%Y-%m') ORDER BY month DESC LIMIT 12",
+				[$refid]
+			);
 		}
 
-		// Replace mock data with actual weather API or historical averages
+		// Re-sort chronologically ascending for time-series forecasting
+		if (!empty($history)) {
+			usort($history, function($a, $b) {
+				return strcmp($a['month'], $b['month']);
+			});
+		}
+
+		// Enrich history records with weather statistics (temperature and humidity)
 		foreach ($history as &$h) {
-			$weather = getWeatherStats($h['month'], $state);
-			// TODO: Replace with actual weather data API call
+			$weather = getWeatherStats($h['month'] ?? null, $state);
 			$h['avg_temp'] = $weather['temperature'];
 			$h['avg_humidity'] = $weather['humidity'];
 		}
+		unset($h);
 
-		$locationFactor = 1.0; // Could be fetched from hospital profile
+		// Sanitize and validate history data format
+		$validatedHistory = validateHistoryData($history);
 
-		$prediction = predictMonthlyOxygenNeed($history, $locationFactor);
+		$locationFactor = 1.0; // Scalable location factor
+
+		// Run actual prediction model
+		$prediction = $predictorService->predictMonthlyNeed($validatedHistory, $locationFactor);
 
 		$result = [
 			'status' => 'success',
-			'description' => 'Predicted oxygen requirement for next month',
+			'description' => empty($validatedHistory)
+				? 'No historical consumption data available for prediction'
+				: 'Predicted oxygen requirement for next month',
 			'hospital_id' => $refid,
 			'data' => [
 				'prediction_cubic_meters' => $prediction['prediction'],
 				'method' => $prediction['method'],
 				'accuracy' => $prediction['accuracy'],
-				'history_count' => count($history)
-				// Removed coefficients from response for security
+				'history_count' => count($validatedHistory)
 			]
 		];
-		saveRun($refid, $prediction, time());
+
+		if (!empty($validatedHistory) && $prediction['method'] !== 'no_data') {
+			saveRun($refid, $prediction, time());
+		}
 
 		return $response->withStatus(200)
 			->withHeader('Content-Type', 'application/json')
@@ -280,18 +332,36 @@ $app->get('/hospital/predict', function (Request $request, Response $response) {
 				'status' => 'error',
 				'message' => 'Prediction service temporarily unavailable'
 			]));
+	} finally {
+		R::close();
 	}
 })->add($authMiddleware);
 
-$app->get('/view/{id}', function (Request $request, Response $response, array $args) use ($authToken) {
+$app->get('/view/{id}', function (Request $request, Response $response, array $args) use ($authToken, $authService) {
 
-	$id = $request->getAttribute('id');
+	$id = (int)$request->getAttribute('id');
+	$authHeader = $request->getHeaderLine("Authorization");
+	$user = null;
 
-	$authorization_header = $request->getHeader("Authorization");
+	if ($authHeader && preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		try {
+			$user = $authService->decodeToken($matches[1]);
+		} catch (Exception $e) {
+			// Fall through
+		}
+	}
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
+	$tokenToCheck = $authHeader;
+	if (preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		$tokenToCheck = $matches[1];
+	}
 
-		$return =  array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+	$isSupervisor = $user && (($user['type'] ?? '') === 'supervisor');
+	$isOwner = $user && ((int)($user['ref_id'] ?? 0) === $id);
+	$hasToken = !empty($tokenToCheck) && hash_equals((string)$authToken, (string)$tokenToCheck);
+
+	if (!$isSupervisor && !$isOwner && !$hasToken) {
+		$return = array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Unauthorized: Valid credentials required', 'data' => null);
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
@@ -299,68 +369,24 @@ $app->get('/view/{id}', function (Request $request, Response $response, array $a
 	}
 
 	try {
+		$book = R::find('predictions', 'hospital_id = ? OR hospitalID = ? ORDER BY tym DESC', [$id, $id]);
 
-		$book  = R::find('predictions', 'hospital_id = ?', [$id]);
-
-		$return =  array('status' => 'success', 'Description' => 'Preciditons history.', 'Message' => 'data was collected', 'data' => $book);
+		$return = array('status' => 'success', 'Description' => 'Predictions history.', 'Message' => 'data was collected', 'data' => array_values($book));
 
 		return $response->withStatus(200)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = "system Failure!" . $e;
-		return json_encode($error);
-	}
-});
-
-$app->post('/test', function (Request $request, Response $response) use ($authToken) {
-	require_once  '../../vendor/autoload.php';
-
-	$authorization_header = $request->getHeader("Authorization");
-
-	$peaditric = $request->getParam('peaditric');
-	$malaria = $request->getParam('malaria');
-	$intensive = $request->getParam('intensive');
-	$accident = $request->getParam('accident');
-	$Theatre = $request->getParam('theatre');
-	$Materinity = $request->getParam('materinity');
-	$Diabetes = $request->getParam('diabetes');
-	$Typhoid = $request->getParam('typhoid');
-	$hospitalid = $request->getParam('hospitalid');
-
-	$time = strtotime("now");
-
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
-
-		$return =  array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing', 'data' => 'method allowed post');
-
-		return $response->withStatus(401)
+		error_log("Prediction view error: " . $e->getMessage());
+		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
-			->write(json_encode($return));
+			->write(json_encode([
+				'status' => 'error',
+				'message' => 'Unable to retrieve predictions history'
+			]));
+	} finally {
+		R::close();
 	}
-
-	try {
-
-
-		$stmt = "SELECT (oo.`qty` * SUBSTRING_INDEX(o.`size`, ' ', 1)) AS quantity, oo.`tym` AS 'datetime' FROM `lifebank_plus`.`oxygen_order` oo JOIN `lifebank_plus`.`oxygen` o ON o.id = oo.product WHERE `order_state` = 'completed' AND `order_by` = ?";
-
-		$te = R::getAll($stmt, [$hospitalid]);
-		$predicted_quantity = predictNeedForTomorrow(json_encode($te));
-		//$needs = (13.1414 + (3.5123 * $peaditric) + (5.4793 * $malaria) + (2.2490 * $intensive) + (6.8767 * $accident) + ($Theatre * 0.1935) + ($Materinity * 5.9922) + ($Typhoid * -10.1190) + ($Diabetes * -6.0203));
-
-		saveRun($hospitalid, $needs, $time);
-
-		$return =  array('status' => 'success', 'Description' => 'Data Processing.', 'Message' => 'data was successfully processed', 'data' => $te);
-
-		return $response->withStatus(200)
-			->withHeader('Content-Type', 'application/json')
-			->write(json_encode($te));
-	} catch (Exception $e) {
-		$error = "system Failure!" . $e;
-		return json_encode($error);
-	}
-
-	R::close();
 });
 
 $app->run();
@@ -370,64 +396,16 @@ function saveRun($hospital, $result, $time)
 {
 	$prediction = R::dispense('predictions');
 
+	$prediction->hospital_id = $hospital;
 	$prediction->hospitalID = $hospital;
 	$prediction->predictions = $result['prediction'] ?? 0;
 	$prediction->method = $result['method'] ?? null;
 	$prediction->accuracy = $result['accuracy'] ?? 0;
 	$prediction->tym = $time;
 
-	//retrive id
+	// retrieve id
 	$id = R::store($prediction);
 
-	//return store id  
+	// return store id  
 	return $id;
-}
-
-function predictNeedForTomorrow($json_data)
-{
-	// Decode JSON data
-	$data = json_decode($json_data, true);
-	//    $data = $json_data;
-
-	// Initialize arrays to store features and targets
-	$features = [];
-	$targets = [];
-
-	// Extract features and targets from the data
-	foreach ($data as $order) {
-		$quantity = intval($order['quantity']);
-		$datetime = intval($order['datetime']);
-
-		// Convert Unix timestamp to datetime
-		$datetime = new DateTime('@' . $datetime);
-
-		// Extract features
-		$features[] = [
-			$datetime->format('m'), // Month
-			$datetime->format('d'), // Day
-			$datetime->format('H') // Hour
-		];
-
-		// Targets (quantities)
-		$targets[] = $quantity;
-	}
-
-	// Initialize and train Support Vector Regression (SVR) model
-	$regression = new \Phpml\Regression\SVR(\Phpml\SupportVectorMachine\Kernel::LINEAR);
-	$regression->train($features, $targets);
-
-	// Generate predictions for future dates
-	$future_date = new DateTime('+1 months');
-	$future_features = [
-		[
-			$future_date->format('m'),
-			$future_date->format('d'),
-			$future_date->format('H')
-		]
-	];
-
-	// Predict need for tomorrow
-	$predicted_quantities = $regression->predict($future_features);
-
-	return $predicted_quantities[0];
 }

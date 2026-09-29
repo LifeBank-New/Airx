@@ -26,19 +26,26 @@ class HospitalService
         FROM `{$mainDb}`.oxygen_order AS o 
         LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id 
         WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? 
-        GROUP BY YEAR(FROM_UNIXTIME(o.tym)), MONTH(FROM_UNIXTIME(o.tym)) 
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') 
         ORDER BY FROM_UNIXTIME(o.tym) DESC";
 
         $lastSixMonthsUsage = R::getAll($usageQuery, [$hospitalId]);
 
         $predictQuery = "SELECT 
-            predictions AS total_cubic_meters, 
-            DATE_FORMAT(FROM_UNIXTIME(tym), '%Y') AS month_year, 
-            DATE_FORMAT(FROM_UNIXTIME(tym), '%M') AS month_name 
-        FROM `predictions` 
-        WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+            p.predictions AS total_cubic_meters, 
+            DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, 
+            DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name 
+        FROM `predictions` p
+        INNER JOIN (
+            SELECT MAX(tym) AS max_tym
+            FROM `predictions`
+            WHERE (hospital_id = ? OR hospitalID = ?) AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')
+        ) latest ON p.tym = latest.max_tym
+        WHERE (p.hospital_id = ? OR p.hospitalID = ?)
+        ORDER BY p.tym ASC";
 
-        $lastSixMonthPredict = R::getAll($predictQuery, [$hospitalId]);
+        $lastSixMonthPredict = R::getAll($predictQuery, [$hospitalId, $hospitalId, $hospitalId, $hospitalId]);
 
         $ordersQuery = "SELECT *, (SELECT size FROM `{$mainDb}`.oxygen WHERE oxygen.id = `{$mainDb}`.oxygen_order.product) AS size 
         FROM `{$mainDb}`.oxygen_order 

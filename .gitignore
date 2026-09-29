@@ -35,12 +35,6 @@ Thumbs.db
 /temp/
 upload_*
 
-# Utilities Folder
-/include/utlites/
-utlites/
 
-# Sensitive Functions
-/include/functions/block.php
-block.php
 
 

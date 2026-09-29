@@ -1,3 +1,4 @@
+<?php 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 use App\Services\AuthService;
@@ -79,30 +80,47 @@ $app->get('/', function (Request $request, Response $response, array $args) use 
 		->write(json_encode($return));
 });
 
-$app->post('/add', function (Request $request, Response $response) use ($authToken) {
+$app->post('/add', function (Request $request, Response $response) use ($authToken, $authService) {
 
-	$authorization_header = $request->getHeader("Authorization");
+	$authHeader = $request->getHeaderLine("Authorization");
+	$user = null;
 
-	$hospitalID = $request->getParam('hospitalID');
-	$gender = $request->getParam('gender');
-	$age = $request->getParam('age');
-	$underlying_conditions = $request->getParam('underlying_conditions');
-	$estimate_need = $request->getParam('estimate_need');
-	$flow_rate = $request->getParam('flow_rate');
-	$date_used = $request->getParam('date_used');
-	$treatrment = $request->getParam('treatrment');
+	if ($authHeader && preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		try {
+			$user = $authService->decodeToken($matches[1]);
+		} catch (Exception $e) {
+			// Fall through
+		}
+	}
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
+	$tokenToCheck = $authHeader;
+	if (preg_match('/Bearer\s+(\S+)/i', trim($authHeader), $matches)) {
+		$tokenToCheck = $matches[1];
+	}
 
-		$return =  array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+	if (empty($user) && (empty($tokenToCheck) || !hash_equals((string)$authToken, (string)$tokenToCheck))) {
+		$return = array('status' => 'false', 'Description' => 'This is a set of credentials used to authenticate a user', 'Message' => 'Header is missing or invalid', 'data' => 'method allowed post');
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	}
 
+	$hospitalID = $request->getParam('hospitalID');
+	if (empty($hospitalID) && !empty($user['ref_id'])) {
+		$hospitalID = (int)$user['ref_id'];
+	}
+
+	$gender = $request->getParam('gender');
+	$age = $request->getParam('age');
+	$underlying_conditions = $request->getParam('underlying_conditions');
+	$estimate_need = $request->getParam('estimate_need');
+	$flow_rate = $request->getParam('flow_rate');
+	$date_used = $request->getParam('date_used');
+	$treatrment = $request->getParam('treatrment') ?? $request->getParam('treatment');
+
 	try {
-		$sql = "INSERT INTO `data` (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`, `date_used`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+		$sql = "INSERT INTO `data` (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`, `date_used`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
 		$add = R::exec($sql, [$hospitalID, $gender, $age, $underlying_conditions, $estimate_need, $flow_rate, $treatrment, $date_used]);
 		$id = R::getInsertID();
@@ -113,7 +131,8 @@ $app->post('/add', function (Request $request, Response $response) use ($authTok
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		$error = array('status' => 'error', 'Message' => 'system Failure: ' . $e->getMessage());
+		error_log("Data insert error: " . $e->getMessage());
+		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($error));
@@ -128,11 +147,12 @@ $app->get('/hospital', function (Request $request, Response $response) {
 		$user = $request->getAttribute('user');
 		$refid = $user['ref_id'];
 
+		$mainDb = Database::getMainDbName();
 		$allUploadedData = R::findAll('data', 'hospitalID = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)', [$refid]);
-		$month = R::getAll("SELECT SUM(estimate_need) as estimate_need, Month(created_at),year(created_at) FROM `data` WHERE hospitalID = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY Month(created_at),year(created_at)", [$refid]);
+		$month = R::getAll("SELECT SUM(estimate_need) as estimate_need, DATE_FORMAT(created_at, '%M') AS month_name, DATE_FORMAT(created_at, '%Y') AS month_year FROM `data` WHERE hospitalID = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m')", [$refid]);
 
-		$lastSixMonthsUsage = R::getAll("SELECT DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M') AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM lifebank_plus.oxygen_order AS o LEFT JOIN lifebank_plus.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY YEAR(FROM_UNIXTIME(o.tym)), MONTH(FROM_UNIXTIME(o.tym)) ORDER BY FROM_UNIXTIME(o.tym) DESC", [$refid]);
-		$lastSixMonthPredict = R::getAll("SELECT predictions as total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(tym), '%M') AS month_name FROM `predictions` WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)", [$refid]);
+		$lastSixMonthsUsage = R::getAll("SELECT DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M') AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY FROM_UNIXTIME(o.tym) DESC", [$refid]);
+		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE (hospital_id = ? OR hospitalID = ?) AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE (p.hospital_id = ? OR p.hospitalID = ?) ORDER BY p.tym DESC", [$refid, $refid, $refid, $refid]);
 
 		$data = ['chart' => ['predicted' => $lastSixMonthPredict, 'actual' => $lastSixMonthsUsage], 'data' => $allUploadedData, 'month' => $month];
 
@@ -142,11 +162,12 @@ $app->get('/hospital', function (Request $request, Response $response) {
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
+		error_log("Hospital data query error: " . $e->getMessage());
 		$response->getBody()->write(json_encode([
-			'status' => 'error',
-			'message' => 'Token invalid or expired: ' . $e->getMessage()
+			'status'  => 'error',
+			'message' => 'An internal server error occurred'
 		]));
-		return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+		return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
 	} finally {
 		R::close();
 	}
@@ -196,37 +217,48 @@ $app->post('/hospital/add', function (Request $request, Response $response) {
             throw new Exception('No valid records found.');
         }
 
-       
         $recordsAdded = 0;
         $errors = [];
-		
 
-        $requiredFields = ['gender', 'age', 'conditions', 'estimate_need', 'flow_rate', 'treatment','date_used'];
+        $requiredFields = ['gender', 'age', 'conditions', 'estimate_need', 'flow_rate', 'treatment', 'date_used'];
 
         foreach ($records as $i => $row) {
-            $missing = array_diff($requiredFields, array_keys(array_filter($row)));
+            $missing = [];
+            foreach ($requiredFields as $field) {
+                // Ensure 0 or "0" is accepted as valid, not missing (Item 30)
+                $val = $row[$field] ?? null;
+                if ($val === null || $val === '') {
+                    // Check aliases / typo-tolerant fields
+                    if ($field === 'treatment' && isset($row['treatrment']) && $row['treatrment'] !== '') continue;
+                    if ($field === 'conditions' && isset($row['underlying_conditions']) && $row['underlying_conditions'] !== '') continue;
+                    $missing[] = $field;
+                }
+            }
 
             if (!empty($missing)) {
                 $errors[] = [
-                    'index' => $i,
+                    'index'          => $i,
                     'missing_fields' => array_values($missing)
                 ];
                 continue;
             }
 
+            $treatmentVal = $row['treatment'] ?? $row['treatrment'] ?? '';
+            $conditionVal = $row['conditions'] ?? $row['underlying_conditions'] ?? '';
+
             $sql = "INSERT INTO `data`
-                    (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`,`date_used`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+                    (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`, `date_used`, `created_at`)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             R::exec($sql, [
                 $refid,
                 $row['gender'],
                 $row['age'],
-                $row['conditions'],
+                $conditionVal,
                 $row['estimate_need'],
                 $row['flow_rate'],
-                $row['treatment'],
-				$row['date_used'],
+                $treatmentVal,
+                $row['date_used'],
             ]);
 
             $recordsAdded++;
@@ -261,10 +293,14 @@ function parseCsvFile($path)
     $rows = [];
     if (($handle = fopen($path, 'r')) !== false) {
         $headers = fgetcsv($handle);
-        $headers = array_map('trim', $headers);
-
-        while (($data = fgetcsv($handle)) !== false) {
-            $rows[] = array_combine($headers, $data);
+        if ($headers !== false) {
+            $headers = array_map('trim', $headers);
+            while (($data = fgetcsv($handle)) !== false) {
+                // Guard against row length mismatch (Item 30)
+                if (count($headers) === count($data)) {
+                    $rows[] = array_combine($headers, array_map('trim', $data));
+                }
+            }
         }
         fclose($handle);
     }

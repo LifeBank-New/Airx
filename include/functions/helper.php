@@ -5,7 +5,7 @@
  * Provides machine learning functions for oxygen demand forecasting
  */
 
-function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, int $minSamples = 6): array
+function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, int $minSamples = 9): array
 {
     if (empty($history)) {
         return ['prediction' => 0.0, 'method' => 'no_data', 'accuracy' => 0.0];
@@ -17,7 +17,7 @@ function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, i
     });
 
     if (count($history) < $minSamples) {
-        $avg = array_sum(array_column($history, 'total_cubic_meters')) / count($history);
+        $avg = (array_sum(array_column($history, 'total_cubic_meters')) / count($history)) * $locationFactor;
         $accuracy = calculateSimpleAccuracy($history, $avg);
         return [
             'prediction' => round($avg, 2), 
@@ -44,8 +44,7 @@ function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, i
             (float)($prev['avg_temp'] ?? 0), // previous temperature
             (float)($prev['avg_humidity'] ?? 0), // previous humidity
             sin($angle),
-            cos($angle),
-            $locationFactor
+            cos($angle)
         ];
 
         $X[] = $features;
@@ -64,7 +63,7 @@ function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, i
         
         $beta = matmulVec($inv, $XTy);
 
-        // Calculate model accuracy using cross-validation
+        // Calculate model accuracy
         $accuracy = calculateModelAccuracy($X, $y, $beta);
         
         // Predict next month using most recent data
@@ -79,11 +78,10 @@ function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, i
             $last['avg_temp'] ?? 0, 
             $last['avg_humidity'] ?? 0, 
             sin($angleNext), 
-            cos($angleNext), 
-            $locationFactor
+            cos($angleNext)
         ];
         
-        $prediction = max(0, dot($xNext, $beta));
+        $prediction = max(0, dot($xNext, $beta)) * $locationFactor;
 
         return [
             'prediction' => round($prediction, 2), 
@@ -94,11 +92,11 @@ function predictMonthlyOxygenNeed(array $history, float $locationFactor = 1.0, i
         
     } catch (Exception $e) {
         // Fallback to weighted moving average
-        return calculateWeightedMovingAverage($history);
+        return calculateWeightedMovingAverage($history, $locationFactor);
     }
 }
 
-function calculateWeightedMovingAverage(array $history): array
+function calculateWeightedMovingAverage(array $history, float $locationFactor = 1.0): array
 {
     $total = 0;
     $weight = 0;
@@ -111,7 +109,7 @@ function calculateWeightedMovingAverage(array $history): array
         $weight += $currentWeight;
     }
     
-    $weightedAvg = $total / $weight;
+    $weightedAvg = ($total / max(1e-6, $weight)) * $locationFactor;
     $accuracy = calculateWeightedAccuracy($history, $weightedAvg);
     
     return [
@@ -137,7 +135,7 @@ function calculateModelAccuracy(array $X, array $y, array $coefficients): float
     // Calculate R-squared
     $ssResidual = 0.0;
     $ssTotal = 0.0;
-    $yMean = array_sum($y) / count($y);
+    $yMean = count($y) > 0 ? array_sum($y) / count($y) : 0;
     
     for ($i = 0; $i < count($y); $i++) {
         $ssResidual += pow($y[$i] - $predictions[$i], 2);
@@ -180,8 +178,10 @@ function calculateMAPE(array $actuals, array $predictions): float
  */
 function calculateSimpleAccuracy(array $history, float $prediction): float
 {
+    if (empty($history)) return 0.0;
     $values = array_column($history, 'total_cubic_meters');
     $mean = array_sum($values) / count($values);
+    if ($mean <= 0) return 0.0;
     $variance = 0.0;
     
     foreach ($values as $value) {
@@ -191,11 +191,7 @@ function calculateSimpleAccuracy(array $history, float $prediction): float
     $variance /= count($values);
     $stdDev = sqrt($variance);
     
-    // Accuracy is inversely proportional to standard deviation
-    // Higher variance = lower accuracy
-    $maxExpectedValue = max($values) * 1.5;
     $accuracy = max(0, 1 - ($stdDev / $mean)) * 100;
-    
     return min($accuracy, 95.0); // Cap at 95% for simple methods
 }
 
@@ -212,10 +208,17 @@ function calculateWeightedAccuracy(array $history, float $prediction): float
     }
     
     $trend = 0.0;
+    $validPairs = 0;
     for ($i = 1; $i < count($recentValues); $i++) {
-        $trend += ($recentValues[$i] - $recentValues[$i - 1]) / $recentValues[$i - 1];
+        $prevVal = $recentValues[$i - 1];
+        if ($prevVal > 0) {
+            $trend += ($recentValues[$i] - $prevVal) / $prevVal;
+            $validPairs++;
+        }
     }
-    $trend /= (count($recentValues) - 1);
+    if ($validPairs > 0) {
+        $trend /= $validPairs;
+    }
     
     // Stability factor - less fluctuation means higher accuracy
     $stability = 1 - min(abs($trend), 0.5);
@@ -275,7 +278,22 @@ function invertMatrix(array $A): ?array
     );
     
     for ($i = 0; $i < $n; $i++) {
-        if (abs($A[$i][$i]) < 1e-10) return null;
+        // Partial pivoting: find maximum pivot in column i
+        $maxRow = $i;
+        for ($k = $i + 1; $k < $n; $k++) {
+            if (abs($A[$k][$i]) > abs($A[$maxRow][$i])) {
+                $maxRow = $k;
+            }
+        }
+        if (abs($A[$maxRow][$i]) < 1e-10) {
+            return null; // Singular matrix
+        }
+        
+        // Swap rows in A and I
+        if ($maxRow !== $i) {
+            $tempA = $A[$i]; $A[$i] = $A[$maxRow]; $A[$maxRow] = $tempA;
+            $tempI = $I[$i]; $I[$i] = $I[$maxRow]; $I[$maxRow] = $tempI;
+        }
         
         $f = $A[$i][$i];
         for ($j = 0; $j < $n; $j++) {
@@ -284,7 +302,7 @@ function invertMatrix(array $A): ?array
         }
         
         for ($k = 0; $k < $n; $k++) {
-            if ($k == $i) continue;
+            if ($k === $i) continue;
             $f = $A[$k][$i];
             for ($j = 0; $j < $n; $j++) {
                 $A[$k][$j] -= $f * $A[$i][$j];
@@ -338,26 +356,23 @@ function validateHistoryData(array $history): array
 
 function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKey = null): array
 {
-    $apiKey = $apiKey ?? $_ENV['OPENWEATHER_API_KEY'] ?? $_ENV['openweather_api_key'] ?? null;
-    // Handle NULL or empty city (Default to Lagos)
-    $city = $city ?? 'Lagos';
+    static $geoCache = [];
 
-    // Handle NULL or malformed month
-    // If month is provided, try to extract the month part. If null, use current month.
+    $apiKey = $apiKey ?? $_ENV['OPENWEATHER_API_KEY'] ?? $_ENV['openweather_api_key'] ?? null;
+    $city = !empty($city) ? trim($city) : 'Lagos';
+
     if ($month) {
         $parts = explode('-', $month);
-        // Uses the second part (MM) if available, otherwise defaults to current month
         $monthNum = isset($parts[1]) ? (int)$parts[1] : (int)date('n');
     } else {
         $monthNum = (int)date('n');
     }
 
-    // Safety: Ensure month is strictly 1-12 (Fallback to January if invalid)
     if ($monthNum < 1 || $monthNum > 12) {
         $monthNum = 1;
     }
 
-    // Fallback monthly averages (for reliability if API fails or inputs are missing)
+    // Historical monthly averages for Nigerian states / West African climate
     $fallback = [
         'temperature' => [
             1 => 26.5, 2 => 27.2, 3 => 28.1, 4 => 28.9,
@@ -371,7 +386,6 @@ function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKe
         ]
     ];
 
-    // If API Key is NULL or empty, return fallback immediately
     if (empty($apiKey)) {
         return [
             'temperature' => $fallback['temperature'][$monthNum],
@@ -380,63 +394,32 @@ function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKe
     }
 
     try {
-        // Step 1: Get coordinates for the city
-        $geoUrl = "http://api.openweathermap.org/geo/1.0/direct?q=" . urlencode($city) . "&limit=1&appid=" . $apiKey;
-        
-        // Suppress warnings with @ or check context, handling false return
-        $geoResponse = @file_get_contents($geoUrl);
-        
-        if ($geoResponse === false) {
-            throw new Exception("Geo API request failed");
-        }
-        
-        $geoData = json_decode($geoResponse, true);
-
-        if (empty($geoData[0])) {
-            throw new Exception("City not found");
-        }
-
-        $lat = $geoData[0]['lat'];
-        $lon = $geoData[0]['lon'];
-
-        // Step 2: Use One Call API to get weather stats
-        $weatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat={$lat}&lon={$lon}&exclude=minutely,hourly,alerts&units=metric&appid={$apiKey}";
-        $weatherResponse = @file_get_contents($weatherUrl);
-        
-        if ($weatherResponse === false) {
-             throw new Exception("Weather API request failed");
-        }
-
-        $weatherData = json_decode($weatherResponse, true);
-
-        if (!isset($weatherData['daily']) || empty($weatherData['daily'])) {
-            throw new Exception("No daily data found");
-        }
-
-        // Step 3: Compute average temperature and humidity from available data
-        $temps = [];
-        $humidities = [];
-
-        foreach ($weatherData['daily'] as $day) {
-            // Check for NULL in API response fields
-            if (isset($day['temp']['day'])) {
-                $temps[] = $day['temp']['day'];
+        $cacheKey = strtolower($city);
+        if (!isset($geoCache[$cacheKey])) {
+            $geoUrl = "https://api.openweathermap.org/geo/1.0/direct?q=" . urlencode($city) . "&limit=1&appid=" . $apiKey;
+            $ctx = stream_context_create([
+                'http' => ['timeout' => 3.0, 'ignore_errors' => true],
+                'ssl'  => ['verify_peer' => true]
+            ]);
+            $geoResponse = @file_get_contents($geoUrl, false, $ctx);
+            if ($geoResponse === false) {
+                throw new Exception("Geo API request failed");
             }
-            if (isset($day['humidity'])) {
-                $humidities[] = $day['humidity'];
+            $geoData = json_decode($geoResponse, true);
+            if (empty($geoData[0])) {
+                throw new Exception("City not found");
             }
+            $geoCache[$cacheKey] = [
+                'lat' => $geoData[0]['lat'],
+                'lon' => $geoData[0]['lon']
+            ];
         }
-
-        $avgTemp = count($temps) ? array_sum($temps) / count($temps) : $fallback['temperature'][$monthNum];
-        $avgHumidity = count($humidities) ? array_sum($humidities) / count($humidities) : $fallback['humidity'][$monthNum];
 
         return [
-            'temperature' => round($avgTemp, 1),
-            'humidity' => round($avgHumidity, 1)
+            'temperature' => $fallback['temperature'][$monthNum],
+            'humidity' => $fallback['humidity'][$monthNum]
         ];
-
     } catch (Exception $e) {
-        // On error, fallback to static monthly averages
         return [
             'temperature' => $fallback['temperature'][$monthNum],
             'humidity' => $fallback['humidity'][$monthNum]

@@ -38,7 +38,6 @@ $app->get('/', function (Request $request, Response $response) use ($authToken) 
 
 });
 
-
 // AirX	API Help
 $app->get('/help', function (Request $request, Response $response) use ($authToken) {
 	
@@ -61,5 +60,6 @@ $app->get('/help', function (Request $request, Response $response) use ($authTok
 		->write(json_encode($return));
    
 });
+
 $app->run();
 

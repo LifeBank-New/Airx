@@ -7,7 +7,8 @@ use R;
 
 class Database
 {
-    private static bool $initialized = false;
+    /** @var bool */
+    private static $initialized = false;
 
     /**
      * Initialize the database connection using environment variables.
@@ -17,6 +18,9 @@ class Database
         if (self::$initialized) {
             return;
         }
+
+        // Enforce Africa/Lagos timezone
+        date_default_timezone_set('Africa/Lagos');
 
         // Load environment variables if available
         if (class_exists(Dotenv::class)) {
@@ -31,6 +35,18 @@ class Database
 
         if (!R::testConnection()) {
             R::setup("mysql:host={$dbhost};dbname={$dbname}", $dbuser, $dbpass);
+        }
+
+        try {
+            R::exec("SET time_zone = '+01:00'");
+        } catch (\Exception $e) {
+            // Ignore if mysql time_zone table is unpopulated
+        }
+
+        // Freeze RedBean schema updates in production
+        $appEnv = strtolower($_ENV['APP_ENV'] ?? 'development');
+        if ($appEnv === 'production') {
+            R::freeze(true);
         }
 
         self::$initialized = true;
