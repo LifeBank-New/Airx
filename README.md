@@ -8,7 +8,7 @@ AirX is a high-performance, lightweight REST API built to forecast hospital oxyg
 
 ## 🚀 Tech Stack
 
-* **Core Runtime**: PHP 8.x / 7.4+
+* **Core Runtime**: PHP 7.3 or higher (7.3, 7.4, 8.x)
 * **API Framework**: [Slim Framework 3](https://www.slimframework.com/)
 * **ORM & Database Abstraction**: [RedBeanPHP](https://redbeanphp.com/)
 * **Database**: MySQL
@@ -48,7 +48,7 @@ airx/
 ## 🛠️ Getting Started
 
 ### Prerequisites
-* PHP 7.4+ or PHP 8.x
+* PHP 7.3 or higher (PHP 7.3, 7.4, 8.x)
 * Composer
 * MySQL Server (5.7+ or 8.0+)
 * Apache (with `mod_rewrite` enabled) or Nginx
