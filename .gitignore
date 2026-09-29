@@ -35,6 +35,11 @@ Thumbs.db
 /temp/
 upload_*
 
+# Allow sample and demo data files
+!*.csv
+!scripts/*.py
+
+
 
 
 

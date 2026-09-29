@@ -10,7 +10,7 @@ class PredictorServiceTest extends TestCase
     /** @var PredictorService */
     private $predictorService;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         $this->predictorService = new PredictorService();
@@ -32,7 +32,7 @@ class PredictorServiceTest extends TestCase
         $needs = $this->predictorService->calculateNeeds($params);
 
         $this->assertGreaterThan(0.0, $needs);
-        $this->assertInternalType('float', $needs);
+        $this->assertIsFloat($needs);
     }
 
     public function testCalculateNeedsClampsNegativeValuesToZero()

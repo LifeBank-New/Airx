@@ -48,7 +48,7 @@ airx/
 ## 🛠️ Getting Started
 
 ### Prerequisites
-* PHP >= 7.3 or PHP 8.x
+* PHP 7.4+ or PHP 8.x
 * Composer
 * MySQL Server (5.7+ or 8.0+)
 * Apache (with `mod_rewrite` enabled) or Nginx
@@ -139,8 +139,8 @@ Authorization: Bearer <your_jwt_token>
 ### 4. Telemetry & Data Ingestion (`/v1/data`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/v1/data/add` | Log single patient medical telemetry data point. |
-| `POST` | `/v1/data/hospital/add` | Batch upload historical records via JSON template or CSV file. |
+| `POST` | `/v1/data/add` | Log single facility monthly oxygen usage data point. |
+| `POST` | `/v1/data/hospital/add` | Batch upload facility monthly usage records via JSON template or CSV file. |
 
 ---
 
@@ -168,7 +168,7 @@ graph TD
 ```
 
 ### 1. Clinical / Departmental Needs Model
-**Files:** [`src/Services/PredictorService.php`](file:///Applications/MAMP/htdocs/airx/src/Services/PredictorService.php)  
+**Files:** [`src/Services/PredictorService.php`](src/Services/PredictorService.php)  
 **Endpoints:** `POST /v1/predictor/run`, `POST /v1/predictor/run/supervisor`
 
 This model computes instantaneous oxygen demand based on clinical ward census and active patient diagnoses using pre-trained linear regression weights:
@@ -183,7 +183,7 @@ $$\begin{aligned}
 * **Supervisor Mode**: Adjusts the base constant to $13.1414$ and pediatric coefficient to $3.7123$ to provide higher safety margins during periods of supply constraint.
 
 ### 2. Time-Series Machine Learning Model
-**Files:** [`include/functions/helper.php`](file:///Applications/MAMP/htdocs/airx/include/functions/helper.php), [`src/Services/PredictorService.php`](file:///Applications/MAMP/htdocs/airx/src/Services/PredictorService.php)  
+**Files:** [`include/functions/helper.php`](include/functions/helper.php), [`src/Services/PredictorService.php`](src/Services/PredictorService.php)  
 **Endpoint:** `GET /v1/predictor/hospital/predict`
 
 This model forecasts **next month's total oxygen consumption (in $m^3$)** through a 4-tier fallback pipeline:
@@ -193,7 +193,7 @@ Solves the normal equations $\beta = (X^T X)^{-1} X^T y$ across historical month
 * **Feature Vector ($X$)**:
   1. $x_0 = 1$ — Model intercept.
   2. $x_1 = \text{total\_cubic\_meters}_{t-1}$ — Autoregressive lag-1 (previous month's consumption volume).
-  3. $x_2 = \text{avg\_temp}_{t-1}$ — Average ambient temperature (retrieved via OpenWeatherMap API or regional climatological baseline).
+  3. $x_2 = \text{avg\_temp}_{t-1}$ — Average ambient temperature (retrieved via regional climatological baseline).
   4. $x_3 = \text{avg\_humidity}_{t-1}$ — Average relative humidity.
   5. $x_4 = \sin(2\pi \cdot \text{month} / 12)$ — Cyclical seasonal harmonic component.
   6. $x_5 = \cos(2\pi \cdot \text{month} / 12)$ — Cyclical seasonal harmonic component.
@@ -212,10 +212,11 @@ For facilities with limited transaction records (1–8 months), it uses the arit
 Returns `0.0` with `method: "no_data"` and `accuracy: 0.0%`.
 
 ### 3. Model Accuracy Scoring
-Accuracy is evaluated dynamically on each run:
-* **OLS Regression**: Blends $R^2$ (Coefficient of Determination, 70% weight) and MAPE (Mean Absolute Percentage Error, 30% weight):
-  $$\text{Accuracy} = \left(0.70 \cdot R^2 + 0.30 \cdot (1 - \min(\text{MAPE}, 1))\right) \times 100$$
-* **Moving Average**: Computed from sample variance ($\sigma / \mu$) and month-over-month trend stability, capped at $90\text{--}95\%$.
+Accuracy is evaluated dynamically on each run using hold-out validation:
+* **Hold-Out Validation**: The model reserves the last 3 months of historical data for out-of-sample evaluation.
+* **Metrics**: Evaluates Mean Absolute Error (MAE) and Mean Absolute Percentage Error (MAPE) on the held-out months:
+  $$\text{Accuracy} = \max\left(0, 1 - \min(\text{MAPE}, 1)\right) \times 100\%$$
+* **Honest Scoring**: Model metrics reflect actual out-of-sample forecasting performance on held-out months rather than in-sample training fit.
 
 ### 4. Telemetry & Persistence
 Every execution of the prediction engine logs telemetry to the `predictions` table (`hospital_id`, `predictions`, `method`, `accuracy`, `tym`), ensuring transparent auditing and longitudinal tracking on the hospital dashboard.

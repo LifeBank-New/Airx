@@ -122,36 +122,50 @@ function calculateWeightedMovingAverage(array $history, float $locationFactor = 
 /**
  * Calculate model accuracy using R-squared and MAPE (Mean Absolute Percentage Error)
  */
+/**
+ * Action C4: Calculate honest model accuracy by holding out the last 3 months for MAE/MAPE validation
+ */
 function calculateModelAccuracy(array $X, array $y, array $coefficients): float
 {
-    $predictions = [];
-    $actuals = $y;
-    
-    // Generate predictions for all training samples
-    foreach ($X as $features) {
-        $predictions[] = dot($features, $coefficients);
+    $sampleCount = count($y);
+    if ($sampleCount === 0) return 0.0;
+
+    // Hold out the last 3 samples for validation
+    $holdOutCount = min(3, max(1, (int)floor($sampleCount * 0.25)));
+    $trainCount = $sampleCount - $holdOutCount;
+
+    $trainBeta = $coefficients;
+    if ($trainCount >= 6) {
+        $Xtrain = array_slice($X, 0, $trainCount);
+        $ytrain = array_slice($y, 0, $trainCount);
+        try {
+            $XT = transpose($Xtrain);
+            $XTX = matmul($XT, $Xtrain);
+            $inv = invertMatrix($XTX);
+            if ($inv) {
+                $trainBeta = matmulVec($inv, matmulVec($XT, $ytrain));
+            }
+        } catch (Exception $e) {
+            $trainBeta = $coefficients;
+        }
     }
-    
-    // Calculate R-squared
-    $ssResidual = 0.0;
-    $ssTotal = 0.0;
-    $yMean = count($y) > 0 ? array_sum($y) / count($y) : 0;
-    
-    for ($i = 0; $i < count($y); $i++) {
-        $ssResidual += pow($y[$i] - $predictions[$i], 2);
-        $ssTotal += pow($y[$i] - $yMean, 2);
+
+    $Xtest = array_slice($X, -$holdOutCount);
+    $ytest = array_slice($y, -$holdOutCount);
+
+    $testPredictions = [];
+    $testActuals = [];
+    for ($i = 0; $i < count($ytest); $i++) {
+        $testPredictions[] = max(0.0, dot($Xtest[$i], $trainBeta));
+        $testActuals[] = $ytest[$i];
     }
-    
-    $rSquared = ($ssTotal == 0) ? 0 : max(0, 1 - ($ssResidual / $ssTotal));
-    
-    // Calculate MAPE (Mean Absolute Percentage Error)
-    $mape = calculateMAPE($actuals, $predictions);
-    
-    // Combine R-squared and MAPE for final accuracy score
-    // R-squared contributes 70%, MAPE contributes 30% to final accuracy
-    $accuracy = ($rSquared * 0.7) + ((1 - min($mape, 1)) * 0.3);
-    
-    return $accuracy * 100; // Convert to percentage
+
+    // Calculate MAPE on held-out validation set
+    $mape = calculateMAPE($testActuals, $testPredictions);
+
+    // Honest accuracy without arbitrary capping
+    $accuracy = max(0.0, (1.0 - min($mape, 1.0))) * 100.0;
+    return round($accuracy, 2);
 }
 
 /**
@@ -174,59 +188,71 @@ function calculateMAPE(array $actuals, array $predictions): float
 }
 
 /**
- * Calculate accuracy for simple moving average
+ * Action C4: Calculate honest hold-out accuracy for simple moving average
  */
 function calculateSimpleAccuracy(array $history, float $prediction): float
 {
     if (empty($history)) return 0.0;
     $values = array_column($history, 'total_cubic_meters');
-    $mean = array_sum($values) / count($values);
-    if ($mean <= 0) return 0.0;
-    $variance = 0.0;
-    
-    foreach ($values as $value) {
-        $variance += pow($value - $mean, 2);
+    $count = count($values);
+    if ($count === 0) return 0.0;
+
+    $holdOutCount = min(3, max(1, (int)floor($count * 0.25)));
+    $trainValues = array_slice($values, 0, $count - $holdOutCount);
+    $testValues = array_slice($values, -$holdOutCount);
+
+    $trainMean = !empty($trainValues) ? (array_sum($trainValues) / count($trainValues)) : $prediction;
+    $errors = [];
+    foreach ($testValues as $actual) {
+        if ($actual > 0) {
+            $errors[] = min(1.0, abs($actual - $trainMean) / $actual);
+        }
     }
-    
-    $variance /= count($values);
-    $stdDev = sqrt($variance);
-    
-    $accuracy = max(0, 1 - ($stdDev / $mean)) * 100;
-    return min($accuracy, 95.0); // Cap at 95% for simple methods
+
+    $mape = !empty($errors) ? (array_sum($errors) / count($errors)) : 1.0;
+    $accuracy = max(0.0, (1.0 - $mape)) * 100.0;
+    return round($accuracy, 2);
 }
 
 /**
- * Calculate accuracy for weighted moving average
+ * Action C4: Calculate honest hold-out accuracy for weighted moving average
  */
 function calculateWeightedAccuracy(array $history, float $prediction): float
 {
-    $recentCount = min(3, count($history));
-    $recentValues = array_slice(array_column($history, 'total_cubic_meters'), -$recentCount);
-    
-    if (count($recentValues) < 2) {
+    $count = count($history);
+    if ($count < 2) {
         return calculateSimpleAccuracy($history, $prediction);
     }
-    
-    $trend = 0.0;
-    $validPairs = 0;
-    for ($i = 1; $i < count($recentValues); $i++) {
-        $prevVal = $recentValues[$i - 1];
-        if ($prevVal > 0) {
-            $trend += ($recentValues[$i] - $prevVal) / $prevVal;
-            $validPairs++;
+
+    $holdOutCount = min(3, max(1, (int)floor($count * 0.25)));
+    $trainHistory = array_slice($history, 0, $count - $holdOutCount);
+    $testHistory = array_slice($history, -$holdOutCount);
+
+    if (empty($trainHistory)) {
+        return calculateSimpleAccuracy($history, $prediction);
+    }
+
+    $total = 0.0;
+    $weight = 0.0;
+    $tCount = count($trainHistory);
+    for ($i = 0; $i < $tCount; $i++) {
+        $w = ($i + 1) / $tCount;
+        $total += $trainHistory[$i]['total_cubic_meters'] * $w;
+        $weight += $w;
+    }
+    $trainPred = $total / max(1e-6, $weight);
+
+    $errors = [];
+    foreach ($testHistory as $row) {
+        $actual = (float)$row['total_cubic_meters'];
+        if ($actual > 0) {
+            $errors[] = min(1.0, abs($actual - $trainPred) / $actual);
         }
     }
-    if ($validPairs > 0) {
-        $trend /= $validPairs;
-    }
-    
-    // Stability factor - less fluctuation means higher accuracy
-    $stability = 1 - min(abs($trend), 0.5);
-    
-    $baseAccuracy = calculateSimpleAccuracy($history, $prediction);
-    
-    // Weighted average gets bonus for considering recent trends
-    return min($baseAccuracy * (0.7 + 0.3 * $stability), 90.0);
+
+    $mape = !empty($errors) ? (array_sum($errors) / count($errors)) : 1.0;
+    $accuracy = max(0.0, (1.0 - $mape)) * 100.0;
+    return round($accuracy, 2);
 }
 
 // Existing helper functions remain the same...
@@ -354,13 +380,12 @@ function validateHistoryData(array $history): array
     return $validated;
 }
 
+/**
+ * Action C3: Provide meteorological statistics using monthly climatological averages.
+ * Removed unused external geocoding HTTP call.
+ */
 function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKey = null): array
 {
-    static $geoCache = [];
-
-    $apiKey = $apiKey ?? $_ENV['OPENWEATHER_API_KEY'] ?? $_ENV['openweather_api_key'] ?? null;
-    $city = !empty($city) ? trim($city) : 'Lagos';
-
     if ($month) {
         $parts = explode('-', $month);
         $monthNum = isset($parts[1]) ? (int)$parts[1] : (int)date('n');
@@ -372,7 +397,7 @@ function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKe
         $monthNum = 1;
     }
 
-    // Historical monthly averages for Nigerian states / West African climate
+    // Historical monthly climatological averages for Nigerian states / West African climate
     $fallback = [
         'temperature' => [
             1 => 26.5, 2 => 27.2, 3 => 28.1, 4 => 28.9,
@@ -386,43 +411,8 @@ function getWeatherStats(?string $month, ?string $city = 'Lagos', ?string $apiKe
         ]
     ];
 
-    if (empty($apiKey)) {
-        return [
-            'temperature' => $fallback['temperature'][$monthNum],
-            'humidity' => $fallback['humidity'][$monthNum]
-        ];
-    }
-
-    try {
-        $cacheKey = strtolower($city);
-        if (!isset($geoCache[$cacheKey])) {
-            $geoUrl = "https://api.openweathermap.org/geo/1.0/direct?q=" . urlencode($city) . "&limit=1&appid=" . $apiKey;
-            $ctx = stream_context_create([
-                'http' => ['timeout' => 3.0, 'ignore_errors' => true],
-                'ssl'  => ['verify_peer' => true]
-            ]);
-            $geoResponse = @file_get_contents($geoUrl, false, $ctx);
-            if ($geoResponse === false) {
-                throw new Exception("Geo API request failed");
-            }
-            $geoData = json_decode($geoResponse, true);
-            if (empty($geoData[0])) {
-                throw new Exception("City not found");
-            }
-            $geoCache[$cacheKey] = [
-                'lat' => $geoData[0]['lat'],
-                'lon' => $geoData[0]['lon']
-            ];
-        }
-
-        return [
-            'temperature' => $fallback['temperature'][$monthNum],
-            'humidity' => $fallback['humidity'][$monthNum]
-        ];
-    } catch (Exception $e) {
-        return [
-            'temperature' => $fallback['temperature'][$monthNum],
-            'humidity' => $fallback['humidity'][$monthNum]
-        ];
-    }
+    return [
+        'temperature' => $fallback['temperature'][$monthNum],
+        'humidity'    => $fallback['humidity'][$monthNum]
+    ];
 }

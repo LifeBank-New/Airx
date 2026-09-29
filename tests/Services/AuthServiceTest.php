@@ -10,7 +10,7 @@ class AuthServiceTest extends TestCase
     /** @var AuthService */
     private $authService;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         // Use a secure key for testing

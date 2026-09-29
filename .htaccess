@@ -1,16 +1,21 @@
 RewriteEngine On
 
-# Block direct access to sensitive files and directories
-<FilesMatch "^(\.env|composer\.(json|lock)|README\.md|LICENSE)$">
-    Order allow,deny
-    Deny from all
+# Block direct access to sensitive files and directories with 403
+<FilesMatch "^(\.env.*|composer\.(json|lock)|README\.md|LICENSE|\.git.*)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-# Deny access to hidden dotfiles and directories (e.g. .git, .env)
+# Deny access to hidden dotfiles and directories (e.g. .git, .env) with 403 Forbidden
 RewriteRule (^|/)\. - [F]
 
-# Deny direct access to vendor directory
-RewriteRule ^vendor/.*$ - [F,L]
+# Deny direct access to vendor and tests directories
+RewriteRule ^(vendor|tests|scripts)/ - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

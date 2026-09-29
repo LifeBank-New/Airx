@@ -8,10 +8,19 @@ require '../../vendor/autoload.php';
 require '../../include/dbsol/conn.php';
 
 $authService = new AuthService();
-$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? 'test';
+
+// Action B2: enforce strong AUTH_TOKEN
+$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? '';
+if (strlen($authToken) < 24 || $authToken === 'test') {
+	throw new RuntimeException('AUTH_TOKEN must be set to a long random value');
+}
+
+// Action A1: Run database migration if legacy data table exists
+migrateDataToFacilityMonthlyUsage();
 
 $app = new \Slim\App;
 
+// Action B6: Mask internal exception details in JWT middleware
 $authMiddleware = function ($request, $response, $next) use ($authService) {
 	$authHeader = $request->getHeaderLine('Authorization');
 
@@ -34,6 +43,7 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 		$request = $request->withAttribute('user', $decoded);
 		return $next($request, $response);
 	} catch (\Firebase\JWT\ExpiredException $e) {
+		error_log("JWT Expired: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
@@ -42,6 +52,7 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 				'message' => 'Token has expired'
 			], JSON_UNESCAPED_SLASHES));
 	} catch (\Firebase\JWT\SignatureInvalidException $e) {
+		error_log("JWT Invalid Signature: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
@@ -50,30 +61,29 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 				'message' => 'Invalid token signature'
 			], JSON_UNESCAPED_SLASHES));
 	} catch (Exception $e) {
+		error_log("JWT Error: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
 				'status'  => 'error',
 				'code'    => 'TOKEN_INVALID',
-				'message' => 'Invalid token: ' . $e->getMessage()
+				'message' => 'Invalid token'
 			], JSON_UNESCAPED_SLASHES));
 	}
 };
 
 $app->get('/', function (Request $request, Response $response, array $args) use ($authToken) {
-
 	$authorization_header = $request->getHeader("Authorization");
 
-	if (empty($authorization_header) || ($authorization_header[0] != $authToken)) {
-
-		$return =  array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Header is missing', 'data' => 'method allowed post');
+	if (empty($authorization_header) || !hash_equals((string)$authToken, (string)$authorization_header[0])) {
+		$return = array('status' => 'false', 'Description' => 'Data Processing.', 'Message' => 'Header is missing or invalid', 'data' => 'method allowed post');
 
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	}
 
-	$return =  array('status' => 'success', 'Description' => 'Data Processing.', 'Message' => 'method allowed,post', 'data' => null);
+	$return = array('status' => 'success', 'Description' => 'Data Processing.', 'Message' => 'method allowed,post', 'data' => null);
 
 	return $response->withStatus(200)
 		->withHeader('Content-Type', 'application/json')
@@ -81,7 +91,6 @@ $app->get('/', function (Request $request, Response $response, array $args) use 
 });
 
 $app->post('/add', function (Request $request, Response $response) use ($authToken, $authService) {
-
 	$authHeader = $request->getHeaderLine("Authorization");
 	$user = null;
 
@@ -106,32 +115,71 @@ $app->post('/add', function (Request $request, Response $response) use ($authTok
 			->write(json_encode($return));
 	}
 
-	$hospitalID = $request->getParam('hospitalID');
-	if (empty($hospitalID) && !empty($user['ref_id'])) {
-		$hospitalID = (int)$user['ref_id'];
+	// Action A1: Reject any patient-level attributes
+	$patientFields = ['gender', 'age', 'conditions', 'underlying_conditions', 'treatment', 'treatrment', 'flow_rate', 'estimate_need'];
+	foreach ($patientFields as $field) {
+		$val = $request->getParam($field);
+		if ($val !== null && $val !== '') {
+			return $response->withStatus(422)
+				->withHeader('Content-Type', 'application/json')
+				->write(json_encode([
+					'status'  => 'error',
+					'code'    => 'PATIENT_DATA_NOT_PERMITTED',
+					'message' => 'AirX stores facility-level monthly totals only, and rejects any record containing patient attributes.'
+				]));
+		}
 	}
 
-	$gender = $request->getParam('gender');
-	$age = $request->getParam('age');
-	$underlying_conditions = $request->getParam('underlying_conditions');
-	$estimate_need = $request->getParam('estimate_need');
-	$flow_rate = $request->getParam('flow_rate');
-	$date_used = $request->getParam('date_used');
-	$treatrment = $request->getParam('treatrment') ?? $request->getParam('treatment');
+	// Action B1: Extract hospital ID from JWT ref_id when present
+	$hospitalID = !empty($user['ref_id'])
+		? (int)$user['ref_id']                          // logged-in hospital: always its own ID
+		: (int)($request->getParam('hospitalID') ?? $request->getParam('hospitalid')); // shared-token callers only
+
+	if ($hospitalID <= 0) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Valid hospital ID is required']));
+	}
+
+	// Facility monthly usage fields
+	$period = trim((string)($request->getParam('period') ?? $request->getParam('month') ?? $request->getParam('date_used') ?? ''));
+	if (preg_match('/^(\d{4}-\d{2})(-\d{2})?$/', $period, $m)) {
+		$period = $m[1];
+	} else {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Valid period format (YYYY-MM) is required']));
+	}
+
+	$oxygenUsed = $request->getParam('oxygen_used_m3') ?? $request->getParam('total_cubic_meters') ?? $request->getParam('usage');
+	if ($oxygenUsed === null || !is_numeric($oxygenUsed) || (float)$oxygenUsed < 0) {
+		return $response->withStatus(400)
+			->withHeader('Content-Type', 'application/json')
+			->write(json_encode(['status' => 'error', 'message' => 'Valid non-negative oxygen_used_m3 is required']));
+	}
+	$oxygenUsed = (float)$oxygenUsed;
 
 	try {
-		$sql = "INSERT INTO `data` (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`, `date_used`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-
-		$add = R::exec($sql, [$hospitalID, $gender, $age, $underlying_conditions, $estimate_need, $flow_rate, $treatrment, $date_used]);
+		try {
+			$sql = "INSERT INTO `facility_monthly_usage` (`hospital_id`, `hospitalID`, `period`, `oxygen_used_m3`, `created_at`) 
+					VALUES (?, ?, ?, ?, NOW()) 
+					ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)";
+			R::exec($sql, [$hospitalID, $hospitalID, $period, $oxygenUsed]);
+		} catch (Exception $colEx) {
+			$sql = "INSERT INTO `facility_monthly_usage` (`hospital_id`, `period`, `oxygen_used_m3`, `created_at`) 
+					VALUES (?, ?, ?, NOW()) 
+					ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)";
+			R::exec($sql, [$hospitalID, $period, $oxygenUsed]);
+		}
 		$id = R::getInsertID();
 
-		$return = array('status' => 'success', 'Description' => 'Data Processing.', 'Message' => 'data was successfully processed', 'data' => $id);
+		$return = array('status' => 'success', 'Description' => 'Data Processing.', 'Message' => 'Facility monthly usage data was successfully processed', 'data' => $id);
 
 		return $response->withStatus(200)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode($return));
 	} catch (Exception $e) {
-		error_log("Data insert error: " . $e->getMessage());
+		error_log("Facility data insert error: " . $e->getMessage());
 		$error = array('status' => 'error', 'Message' => 'An internal server error occurred');
 		return $response->withStatus(500)
 			->withHeader('Content-Type', 'application/json')
@@ -142,19 +190,23 @@ $app->post('/add', function (Request $request, Response $response) use ($authTok
 });
 
 $app->get('/hospital', function (Request $request, Response $response) {
-
 	try {
 		$user = $request->getAttribute('user');
-		$refid = $user['ref_id'];
+		$refid = (int)$user['ref_id'];
 
 		$mainDb = Database::getMainDbName();
-		$allUploadedData = R::findAll('data', 'hospitalID = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)', [$refid]);
-		$month = R::getAll("SELECT SUM(estimate_need) as estimate_need, DATE_FORMAT(created_at, '%M') AS month_name, DATE_FORMAT(created_at, '%Y') AS month_year FROM `data` WHERE hospitalID = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m')", [$refid]);
 
-		$lastSixMonthsUsage = R::getAll("SELECT DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M') AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY FROM_UNIXTIME(o.tym) DESC", [$refid]);
-		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE (hospital_id = ? OR hospitalID = ?) AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE (p.hospital_id = ? OR p.hospitalID = ?) ORDER BY p.tym DESC", [$refid, $refid, $refid, $refid]);
+		// Action A1: Point to facility_monthly_usage
+		$allUploadedData = R::findAll('facility_monthly_usage', 'hospital_id = ? ORDER BY period DESC', [$refid]);
+		$month = R::getAll("SELECT SUM(oxygen_used_m3) as estimate_need, MIN(DATE_FORMAT(CONCAT(period, '-01'), '%M')) AS month_name, MIN(DATE_FORMAT(CONCAT(period, '-01'), '%Y')) AS month_year FROM `facility_monthly_usage` WHERE hospital_id = ? GROUP BY period ORDER BY period DESC", [$refid]);
 
-		$data = ['chart' => ['predicted' => $lastSixMonthPredict, 'actual' => $lastSixMonthsUsage], 'data' => $allUploadedData, 'month' => $month];
+		// Action A4: Wrap %Y and %M in MIN() and order by MIN(o.tym) DESC for ONLY_FULL_GROUP_BY compliance
+		$lastSixMonthsUsage = R::getAll("SELECT MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY MIN(o.tym) DESC", [$refid]);
+
+		// Action A2: Remove hospitalID reference from predictions query
+		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE p.hospital_id = ? ORDER BY p.tym DESC", [$refid, $refid]);
+
+		$data = ['chart' => ['predicted' => $lastSixMonthPredict, 'actual' => $lastSixMonthsUsage], 'data' => array_values($allUploadedData), 'month' => $month];
 
 		$return = array('status' => 'success', 'Description' => 'hospital informations endpoints', 'data' => $data);
 
@@ -174,115 +226,148 @@ $app->get('/hospital', function (Request $request, Response $response) {
 })->add($authMiddleware);
 
 $app->post('/hospital/add', function (Request $request, Response $response) {
-    try {
-        $user = $request->getAttribute('user');
+	try {
+		$user = $request->getAttribute('user');
 
-        $refid = $user['ref_id'];
-        $uploadedFiles = $request->getUploadedFiles();
+		// Action B1: Extract hospital from login token
+		$refid = !empty($user['ref_id'])
+			? (int)$user['ref_id']
+			: (int)($request->getParam('hospitalID') ?? $request->getParam('hospitalid'));
 
-        $records = [];
+		if ($refid <= 0) {
+			return $response->withStatus(400)->withHeader('Content-Type', 'application/json')
+				->write(json_encode(['status' => 'error', 'message' => 'Valid hospital ID is required']));
+		}
 
-        
-        if (isset($uploadedFiles['file'])) {
-            $file = $uploadedFiles['file'];
+		$uploadedFiles = $request->getUploadedFiles();
+		$records = [];
+		$headers = [];
 
-            if ($file->getError() === UPLOAD_ERR_OK) {
-                $filename = $file->getClientFilename();
-                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		if (isset($uploadedFiles['file'])) {
+			$file = $uploadedFiles['file'];
 
-                if ($ext !== 'csv') {
-                    throw new Exception("Unsupported file type: only CSV files are allowed");
-                }
+			if ($file->getError() === UPLOAD_ERR_OK) {
+				$filename = $file->getClientFilename();
+				$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-                $filePath = sys_get_temp_dir() . '/' . uniqid('upload_', true) . '.csv';
-                $file->moveTo($filePath);
+				if ($ext !== 'csv') {
+					throw new Exception("Unsupported file type: only CSV files are allowed");
+				}
 
-                $records = parseCsvFile($filePath);
-                unlink($filePath); // cleanup temp file
-            } else {
-                throw new Exception('File upload failed.');
-            }
-        }
-        
-        else {
-            $body = $request->getParsedBody();
-            if (isset($body['templateData']) && is_array($body['templateData'])) {
-                $records = $body['templateData'];
-            } else {
-                throw new Exception('Missing or invalid "templateData" in JSON body');
-            }
-        }
+				$filePath = sys_get_temp_dir() . '/' . uniqid('upload_', true) . '.csv';
+				$file->moveTo($filePath);
 
-        if (empty($records)) {
-            throw new Exception('No valid records found.');
-        }
+				$parsed = parseCsvFile($filePath);
+				@unlink($filePath);
 
-        $recordsAdded = 0;
-        $errors = [];
+				$headers = $parsed['headers'];
+				$records = $parsed['rows'];
+			} else {
+				throw new Exception('File upload failed.');
+			}
+		} else {
+			$body = $request->getParsedBody();
+			if (isset($body['templateData']) && is_array($body['templateData'])) {
+				$records = $body['templateData'];
+				if (!empty($records) && is_array($records[0])) {
+					$headers = array_keys($records[0]);
+				}
+			} else {
+				throw new Exception('Missing or invalid "templateData" in JSON body');
+			}
+		}
 
-        $requiredFields = ['gender', 'age', 'conditions', 'estimate_need', 'flow_rate', 'treatment', 'date_used'];
+		if (empty($records)) {
+			throw new Exception('No valid records found.');
+		}
 
-        foreach ($records as $i => $row) {
-            $missing = [];
-            foreach ($requiredFields as $field) {
-                // Ensure 0 or "0" is accepted as valid, not missing (Item 30)
-                $val = $row[$field] ?? null;
-                if ($val === null || $val === '') {
-                    // Check aliases / typo-tolerant fields
-                    if ($field === 'treatment' && isset($row['treatrment']) && $row['treatrment'] !== '') continue;
-                    if ($field === 'conditions' && isset($row['underlying_conditions']) && $row['underlying_conditions'] !== '') continue;
-                    $missing[] = $field;
-                }
-            }
+		// Action A1: Detect and reject patient attributes in CSV headers or records
+		$patientIndicators = ['gender', 'age', 'conditions', 'underlying_conditions', 'treatment', 'treatrment', 'flow_rate', 'estimate_need'];
+		foreach ($headers as $h) {
+			$cleanH = strtolower(trim((string)$h));
+			if (in_array($cleanH, $patientIndicators, true)) {
+				return $response->withStatus(422)->withHeader('Content-Type', 'application/json')
+					->write(json_encode([
+						'status'  => 'error',
+						'code'    => 'PATIENT_DATA_NOT_PERMITTED',
+						'message' => 'AirX stores facility-level monthly totals only, and rejects any record containing patient attributes.'
+					]));
+			}
+		}
 
-            if (!empty($missing)) {
-                $errors[] = [
-                    'index'          => $i,
-                    'missing_fields' => array_values($missing)
-                ];
-                continue;
-            }
+		foreach ($records as $row) {
+			foreach ($patientIndicators as $field) {
+				if (isset($row[$field]) && $row[$field] !== '') {
+					return $response->withStatus(422)->withHeader('Content-Type', 'application/json')
+						->write(json_encode([
+							'status'  => 'error',
+							'code'    => 'PATIENT_DATA_NOT_PERMITTED',
+							'message' => 'AirX stores facility-level monthly totals only, and rejects any record containing patient attributes.'
+						]));
+				}
+			}
+		}
 
-            $treatmentVal = $row['treatment'] ?? $row['treatrment'] ?? '';
-            $conditionVal = $row['conditions'] ?? $row['underlying_conditions'] ?? '';
+		$recordsAdded = 0;
+		$errors = [];
 
-            $sql = "INSERT INTO `data`
-                    (`hospitalID`, `gender`, `age`, `underlying_conditions`, `estimate_need`, `flow_rate`, `treatrment`, `date_used`, `created_at`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+		foreach ($records as $i => $row) {
+			// Extract period (YYYY-MM)
+			$rawPeriod = $row['period'] ?? $row['month'] ?? $row['date'] ?? $row['date_used'] ?? null;
+			$period = null;
+			if ($rawPeriod && preg_match('/^(\d{4}-\d{2})(-\d{2})?$/', trim((string)$rawPeriod), $m)) {
+				$period = $m[1];
+			}
 
-            R::exec($sql, [
-                $refid,
-                $row['gender'],
-                $row['age'],
-                $conditionVal,
-                $row['estimate_need'],
-                $row['flow_rate'],
-                $treatmentVal,
-                $row['date_used'],
-            ]);
+			// Extract oxygen volume
+			$rawOxygen = $row['oxygen_used_m3'] ?? $row['total_cubic_meters'] ?? $row['oxygen_used'] ?? $row['volume'] ?? $row['usage'] ?? null;
 
-            $recordsAdded++;
-        }
+			if ($period === null || $rawOxygen === null || !is_numeric($rawOxygen) || (float)$rawOxygen < 0) {
+				$errors[] = [
+					'index' => $i,
+					'message' => 'Missing or invalid fields. Expected period (YYYY-MM) and non-negative oxygen_used_m3.'
+				];
+				continue;
+			}
 
-        $response->getBody()->write(json_encode([
-            'status' => 'success',
-            'description' => 'Records added successfully',
-            'data' => [
-                'records_added' => $recordsAdded,
-                'records_failed' => count($errors),
-                'errors' => $errors
-            ]
-        ], JSON_PRETTY_PRINT));
+			$oxygenUsed = (float)$rawOxygen;
 
-        return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+			try {
+				$sql = "INSERT INTO `facility_monthly_usage`
+						(`hospital_id`, `hospitalID`, `period`, `oxygen_used_m3`, `created_at`)
+						VALUES (?, ?, ?, ?, NOW())
+						ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)";
+				R::exec($sql, [$refid, $refid, $period, $oxygenUsed]);
+			} catch (Exception $colEx) {
+				$sql = "INSERT INTO `facility_monthly_usage`
+						(`hospital_id`, `period`, `oxygen_used_m3`, `created_at`)
+						VALUES (?, ?, ?, NOW())
+						ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)";
+				R::exec($sql, [$refid, $period, $oxygenUsed]);
+			}
+			$recordsAdded++;
+		}
 
-    } catch (Exception $e) {
-        $response->getBody()->write(json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]));
-        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-    }
+		$response->getBody()->write(json_encode([
+			'status' => 'success',
+			'description' => 'Records added successfully',
+			'data' => [
+				'records_added'  => $recordsAdded,
+				'records_failed' => count($errors),
+				'errors'         => $errors
+			]
+		], JSON_PRETTY_PRINT));
+
+		return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+
+	} catch (Exception $e) {
+		error_log("Upload error: " . $e->getMessage());
+		$response->getBody()->write(json_encode([
+			'status'  => 'error',
+			'message' => $e->getMessage()
+		]));
+		return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+	}
 })->add($authMiddleware);
 
 $app->run();
@@ -290,20 +375,102 @@ $app->run();
 
 function parseCsvFile($path)
 {
-    $rows = [];
-    if (($handle = fopen($path, 'r')) !== false) {
-        $headers = fgetcsv($handle);
-        if ($headers !== false) {
-            $headers = array_map('trim', $headers);
-            while (($data = fgetcsv($handle)) !== false) {
-                // Guard against row length mismatch (Item 30)
-                if (count($headers) === count($data)) {
-                    $rows[] = array_combine($headers, array_map('trim', $data));
-                }
-            }
-        }
-        fclose($handle);
-    }
-    return $rows;
+	$headers = [];
+	$rows = [];
+	if (($handle = fopen($path, 'r')) !== false) {
+		$rawHeaders = fgetcsv($handle);
+		if ($rawHeaders !== false) {
+			$headers = array_map(function($h) {
+				return strtolower(trim((string)$h));
+			}, $rawHeaders);
+
+			while (($data = fgetcsv($handle)) !== false) {
+				if (count($data) === 1 && ($data[0] === null || trim((string)$data[0]) === '')) {
+					continue;
+				}
+				if (count($headers) === count($data)) {
+					$cleanData = array_map('trim', $data);
+					$rows[] = array_combine($headers, $cleanData);
+				}
+			}
+		}
+		fclose($handle);
+	}
+	return ['headers' => $headers, 'rows' => $rows];
 }
 
+/**
+ * Action A1: Migration from legacy patient data table to facility_monthly_usage.
+ * Drops legacy data table only after aggregated totals match.
+ */
+function migrateDataToFacilityMonthlyUsage()
+{
+	try {
+		if (!R::testConnection()) {
+			return;
+		}
+
+		// Ensure target table exists
+		R::exec("CREATE TABLE IF NOT EXISTS `facility_monthly_usage` (
+			`id` INT AUTO_INCREMENT PRIMARY KEY,
+			`hospital_id` INT NOT NULL,
+			`hospitalID` INT NOT NULL,
+			`period` VARCHAR(7) NOT NULL,
+			`oxygen_used_m3` DECIMAL(10,2) NOT NULL,
+			`created_at` DATETIME NULL,
+			KEY `idx_hospital_id` (`hospital_id`),
+			KEY `idx_hospitalID` (`hospitalID`),
+			KEY `idx_period` (`period`),
+			UNIQUE KEY `uniq_hospital_period` (`hospital_id`, `period`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+		// Check if legacy table 'data' exists
+		$tables = R::inspect();
+		if (!in_array('data', $tables, true)) {
+			return;
+		}
+
+		$rowCount = (int)R::getCell("SELECT COUNT(*) FROM `data`");
+		if ($rowCount > 0) {
+			$oldTotal = (float)R::getCell("SELECT SUM(estimate_need) FROM `data`");
+
+			// Aggregate monthly totals per hospital
+			$aggregated = R::getAll("
+				SELECT 
+					hospitalID, 
+					DATE_FORMAT(date_used, '%Y-%m') AS period, 
+					ROUND(SUM(estimate_need), 2) AS total_oxygen,
+					MIN(created_at) AS created_at
+				FROM `data`
+				WHERE date_used IS NOT NULL AND date_used != '' AND date_used != '0000-00-00'
+				GROUP BY hospitalID, DATE_FORMAT(date_used, '%Y-%m')
+			");
+
+			foreach ($aggregated as $row) {
+				$hosId = (int)$row['hospitalID'];
+				$period = $row['period'];
+				$totalOxy = (float)$row['total_oxygen'];
+				$createdAt = $row['created_at'] ?: date('Y-m-d H:i:s');
+
+				R::exec("INSERT INTO `facility_monthly_usage` (`hospital_id`, `hospitalID`, `period`, `oxygen_used_m3`, `created_at`) 
+						VALUES (?, ?, ?, ?, ?) 
+						ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)",
+					[$hosId, $hosId, $period, $totalOxy, $createdAt]
+				);
+			}
+
+			// Verify totals before dropping
+			$newTotal = (float)R::getCell("SELECT SUM(oxygen_used_m3) FROM `facility_monthly_usage`");
+			if (abs($oldTotal - $newTotal) < 0.05) {
+				R::exec("DROP TABLE `data`");
+				error_log("Migration successful: legacy `data` table dropped after matching totals ($oldTotal == $newTotal).");
+			} else {
+				error_log("Migration warning: totals mismatch ($oldTotal vs $newTotal). Legacy `data` table retained.");
+			}
+		} else {
+			R::exec("DROP TABLE `data`");
+		}
+	} catch (Exception $e) {
+		error_log("Data migration error: " . $e->getMessage());
+	}
+}

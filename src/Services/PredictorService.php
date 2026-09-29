@@ -72,7 +72,6 @@ class PredictorService
         $time = $timestamp ?? time();
         $prediction = R::dispense('predictions');
         $prediction->hospital_id = $hospitalId;
-        $prediction->hospitalID = $hospitalId;
         $prediction->predictions = $needs;
         $prediction->tym = $time;
 

@@ -11,7 +11,11 @@ if (class_exists('Dotenv\Dotenv')) {
 	$dotenv->safeLoad();
 }
 
-$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? 'test';
+// Action B2: enforce strong AUTH_TOKEN
+$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? '';
+if (strlen($authToken) < 24 || $authToken === 'test') {
+	throw new RuntimeException('AUTH_TOKEN must be set to a long random value');
+}
 
 $app = new \Slim\App;
 
@@ -20,9 +24,9 @@ $app->get('/', function (Request $request, Response $response) use ($authToken) 
 	
 	$authorization_header = $request->getHeader("Authorization");
 	
-	if(empty($authorization_header) || ($authorization_header[0] != $authToken)){ 
+	if(empty($authorization_header) || !hash_equals((string)$authToken, (string)$authorization_header[0])){ 
 		
-	    $return =  array('status'=> 'false' , 'Description' =>'Welcome to AirX API', 'Message' =>'Header is missing','data'=>null); 
+	    $return =  array('status'=> 'false' , 'Description' =>'Welcome to AirX API', 'Message' =>'Header is missing or invalid','data'=>null); 
 	   
 	    return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
@@ -43,9 +47,9 @@ $app->get('/help', function (Request $request, Response $response) use ($authTok
 	
 	$authorization_header = $request->getHeader("Authorization");
 	
-	if(empty($authorization_header) || ($authorization_header[0] != $authToken)){ 
+	if(empty($authorization_header) || !hash_equals((string)$authToken, (string)$authorization_header[0])){ 
 		
-	    $return =  array('status'=> 'false' , 'Description' =>'Welcome to AirX API', 'Message' =>'Header is missing','data'=>null); 
+	    $return =  array('status'=> 'false' , 'Description' =>'Welcome to AirX API', 'Message' =>'Header is missing or invalid','data'=>null); 
 	   
 	    return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')

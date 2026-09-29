@@ -1,0 +1,716 @@
+gender,age,conditions,estimate_need,flow_rate,treatment,date_used
+Female,33,Pneumonia,9.43,4.8,Oxygen Therapy,2025-10-01
+Male,56,Respiratory Distress,16.81,6.3,CPAP,2025-10-01
+Male,63,Pneumonia,13.87,8.2,Face Mask,2025-10-02
+Female,61,Bronchitis,5.28,4.3,Nasal Cannula,2025-10-02
+Male,28,Hypoxemia,12.56,4.6,Venturi Mask,2025-10-03
+Female,56,Trauma,25.14,13.6,Mechanical Ventilation,2025-10-03
+Male,83,Heart Failure,13.42,7.1,Nasal Cannula,2025-10-04
+Male,22,Trauma,25.92,12.6,Face Mask,2025-10-04
+Male,52,COVID-19,32.35,10.1,CPAP,2025-10-05
+Female,63,COPD,13.02,3.2,Nasal Cannula,2025-10-05
+Male,40,Asthma,8.62,3.0,Oxygen Therapy,2025-10-05
+Male,43,Respiratory Distress,12.71,8.1,CPAP,2025-10-06
+Female,35,Trauma,28.97,9.5,Face Mask,2025-10-06
+Male,59,Trauma,28.46,10.8,Mechanical Ventilation,2025-10-07
+Male,26,Bronchitis,8.49,2.7,Nasal Cannula,2025-10-07
+Female,72,Hypoxemia,10.63,6.4,Face Mask,2025-10-07
+Female,13,Respiratory Distress,15.36,13.7,CPAP,2025-10-08
+Female,71,COPD,11.96,2.5,Nasal Cannula,2025-10-08
+Female,45,Bronchitis,4.92,4.0,Nasal Cannula,2025-10-08
+Female,22,Hypoxemia,13.44,6.6,Venturi Mask,2025-10-09
+Male,47,Hypoxemia,11.58,9.2,Oxygen Therapy,2025-10-09
+Male,21,Respiratory Distress,23.87,12.9,Mechanical Ventilation,2025-10-09
+Male,43,Respiratory Distress,32.44,6.2,Mechanical Ventilation,2025-10-10
+Male,18,Hypoxemia,19.36,9.3,Oxygen Therapy,2025-10-10
+Male,58,Bronchitis,7.8,2.4,Nasal Cannula,2025-10-11
+Female,28,Hypoxemia,16.28,8.5,Face Mask,2025-10-12
+Female,57,Hypoxemia,18.8,6.2,Face Mask,2025-10-12
+Male,32,COVID-19,26.19,6.2,CPAP,2025-10-13
+Male,12,None,3.29,3.4,Oxygen Therapy,2025-10-13
+Female,22,Pneumonia,17.37,5.4,Face Mask,2025-10-14
+Female,59,COPD,7.9,3.5,BiPAP,2025-10-15
+Female,75,Heart Failure,14.75,5.3,Nasal Cannula,2026-10-16
+Male,31,Asthma,12.62,3.4,Oxygen Therapy,2025-10-17
+Male,40,COVID-19,23.28,10.0,Mechanical Ventilation,2025-10-17
+Male,56,COVID-19,28.35,6.9,Mechanical Ventilation,2025-10-18
+Male,13,Respiratory Distress,22.68,7.5,CPAP,2025-10-18
+Male,58,Heart Failure,10.69,3.0,Nasal Cannula,2025-10-19
+Female,37,Bronchitis,6.37,2.5,Oxygen Therapy,2025-10-20
+Male,65,Pneumonia,16.18,4.3,Nasal Cannula,2025-10-20
+Male,9,Respiratory Distress,16.09,6.7,Non-Rebreather Mask,2025-10-20
+Female,35,COVID-19,27.08,8.2,Mechanical Ventilation,2025-10-21
+Male,38,None,4.02,3.9,Nasal Cannula,2025-10-21
+Female,53,COVID-19,20.6,12.0,Non-Rebreather Mask,2025-10-22
+Male,18,Trauma,22.13,12.3,Mechanical Ventilation,2025-10-22
+Male,66,Respiratory Distress,19.68,7.2,Mechanical Ventilation,2025-10-23
+Female,46,COVID-19,25.95,9.9,Non-Rebreather Mask,2025-10-24
+Male,40,Respiratory Distress,31.32,6.9,Non-Rebreather Mask,2025-10-25
+Male,71,Hypoxemia,9.87,8.5,Oxygen Therapy,2025-10-25
+Female,41,COVID-19,19.81,11.7,Mechanical Ventilation,2025-10-26
+Female,64,Bronchitis,7.39,2.3,Nasal Cannula,2025-10-26
+Female,67,Pneumonia,11.67,7.8,Oxygen Therapy,2025-10-27
+Female,45,Bronchitis,11.56,2.3,Nasal Cannula,2025-10-27
+Male,78,COPD,7.48,3.0,BiPAP,2025-10-28
+Male,61,COPD,13.96,3.7,BiPAP,2025-10-28
+Male,33,Trauma,26.04,8.7,Oxygen Therapy,2025-10-29
+Male,63,Heart Failure,15.73,7.9,CPAP,2025-10-29
+Male,59,Heart Failure,15.39,7.6,Oxygen Therapy,2025-10-29
+Female,38,COVID-19,33.19,7.0,Mechanical Ventilation,2025-10-30
+Male,22,Bronchitis,10.56,3.0,Oxygen Therapy,2025-10-30
+Male,70,COVID-19,20.13,9.6,Non-Rebreather Mask,2025-10-31
+Female,28,Asthma,10.8,4.0,Oxygen Therapy,2025-10-31
+Female,5,Respiratory Distress,17.75,13.9,CPAP,2025-10-31
+Male,21,Hypoxemia,19.25,6.6,Face Mask,2025-11-01
+Female,56,Trauma,32.42,8.8,Oxygen Therapy,2025-11-01
+Female,18,Pneumonia,17.87,9.6,Face Mask,2025-11-02
+Female,55,COVID-19,39.4,14.5,Non-Rebreather Mask,2025-11-03
+Female,54,None,5.18,3.4,Oxygen Therapy,2025-11-03
+Female,73,Heart Failure,8.66,4.5,Oxygen Therapy,2025-11-04
+Female,59,Heart Failure,12.5,5.8,Oxygen Therapy,2025-11-04
+Female,28,Hypoxemia,17.57,8.7,Venturi Mask,2025-11-05
+Female,46,Trauma,24.38,12.7,Mechanical Ventilation,2025-11-05
+Male,61,COPD,14.02,3.2,Venturi Mask,2025-11-05
+Female,42,COVID-19,17.27,7.3,Non-Rebreather Mask,2025-11-06
+Male,41,None,6.76,3.8,Nasal Cannula,2026-11-07
+Female,73,Heart Failure,16.39,3.7,CPAP,2025-11-07
+Female,20,Asthma,12.6,5.2,Nasal Cannula,2025-11-07
+Male,17,Respiratory Distress,25.56,7.2,Mechanical Ventilation,2025-11-08
+Female,58,Respiratory Distress,36.37,13.3,Non-Rebreather Mask,2025-11-08
+Female,22,Respiratory Distress,25.19,13.8,Non-Rebreather Mask,2025-11-09
+Female,77,COVID-19,22.15,10.4,Mechanical Ventilation,2025-11-09
+Male,32,Hypoxemia,16.65,5.9,Venturi Mask,2025-11-10
+Male,59,COPD,15.02,3.2,BiPAP,2025-11-10
+Female,82,Heart Failure,9.75,5.1,Nasal Cannula,2025-11-11
+Male,60,None,8.87,3.0,Nasal Cannula,2025-11-12
+Female,69,Hypoxemia,19.34,7.2,Venturi Mask,2025-11-12
+Female,42,COVID-19,16.83,9.9,CPAP,2025-11-13
+Female,28,Trauma,34.1,14.4,Mechanical Ventilation,2025-11-13
+Male,53,Heart Failure,18.86,5.1,Oxygen Therapy,2025-11-14
+Male,60,COPD,12.13,2.3,BiPAP,2025-11-14
+Female,74,Heart Failure,13.39,7.2,Nasal Cannula,2025-11-15
+Male,46,Respiratory Distress,33.57,11.9,CPAP,2025-11-15
+Male,30,Pneumonia,13.04,7.7,Oxygen Therapy,2025-11-16
+Male,46,Bronchitis,6.96,3.4,Nasal Cannula,2025-11-16
+Male,61,None,4.07,3.9,Oxygen Therapy,2025-11-17
+Female,54,Pneumonia,15.24,9.4,Face Mask,2025-11-17
+Male,65,COVID-19,22.24,13.5,Mechanical Ventilation,2025-11-18
+Male,65,Hypoxemia,13.99,8.7,Face Mask,2025-11-18
+Female,52,Heart Failure,7.07,6.2,Oxygen Therapy,2025-11-18
+Male,37,Bronchitis,12.22,3.9,Oxygen Therapy,2025-11-19
+Female,57,COPD,14.38,2.8,Venturi Mask,2025-11-19
+Female,61,Respiratory Distress,28.79,13.4,Mechanical Ventilation,2025-11-20
+Male,23,Trauma,18.85,14.2,Mechanical Ventilation,2025-11-20
+Female,33,None,5.32,3.0,Oxygen Therapy,2025-11-21
+Male,32,Bronchitis,12.7,3.0,Oxygen Therapy,2025-11-21
+Male,48,Hypoxemia,19.14,4.5,Oxygen Therapy,2025-11-22
+Male,54,Bronchitis,9.12,3.9,Oxygen Therapy,2025-11-22
+Female,20,Asthma,8.12,4.8,Face Mask,2025-11-23
+Female,42,None,7.74,2.9,Nasal Cannula,2025-11-23
+Female,29,Bronchitis,11.24,2.7,Oxygen Therapy,2025-11-24
+Male,52,Trauma,18.28,9.3,Oxygen Therapy,2025-11-24
+Female,18,None,5.53,2.6,Oxygen Therapy,2025-11-25
+Male,60,Hypoxemia,9.83,4.8,Face Mask,2025-11-25
+Male,55,Hypoxemia,9.37,4.6,Venturi Mask,2025-11-26
+Female,31,Bronchitis,6.92,4.9,Nasal Cannula,2025-11-27
+Male,62,Bronchitis,5.28,3.2,Nasal Cannula,2025-11-27
+Male,27,Pneumonia,10.57,9.7,Face Mask,2025-11-28
+Male,63,COVID-19,36.11,11.5,CPAP,2025-11-28
+Female,59,Respiratory Distress,28.69,8.7,Mechanical Ventilation,2025-11-29
+Male,51,None,4.64,3.9,Oxygen Therapy,2025-11-30
+Female,70,COVID-19,20.5,7.4,Non-Rebreather Mask,2025-11-30
+Female,46,Pneumonia,13.89,7.6,Face Mask,2025-12-01
+Female,19,Hypoxemia,12.85,5.4,Face Mask,2025-12-02
+Male,39,None,7.17,3.1,Oxygen Therapy,2025-12-03
+Male,19,Hypoxemia,13.45,5.0,Oxygen Therapy,2025-12-03
+Female,40,None,5.2,2.9,Oxygen Therapy,2025-12-04
+Female,80,Heart Failure,8.01,5.5,Oxygen Therapy,2025-12-04
+Female,64,Heart Failure,20.17,3.5,CPAP,2025-12-05
+Male,60,None,7.84,3.2,Nasal Cannula,2025-12-06
+Female,68,COPD,10.1,2.6,Venturi Mask,2025-12-06
+Female,52,None,6.15,3.9,Nasal Cannula,2025-12-06
+Male,28,Trauma,24.06,10.9,Mechanical Ventilation,2025-12-07
+Male,77,Heart Failure,11.36,4.6,CPAP,2025-12-07
+Male,82,Heart Failure,9.49,5.1,Nasal Cannula,2025-12-08
+Female,58,Trauma,18.01,13.3,Mechanical Ventilation,2025-12-08
+Male,38,Respiratory Distress,26.06,13.9,Mechanical Ventilation,2025-12-08
+Male,57,None,3.53,2.6,Oxygen Therapy,2025-12-09
+Male,57,COVID-19,20.0,11.8,Non-Rebreather Mask,2025-12-10
+Female,41,Hypoxemia,12.56,9.9,Venturi Mask,2025-12-10
+Male,80,Heart Failure,18.82,7.4,Oxygen Therapy,2025-12-11
+Female,36,Hypoxemia,9.24,5.6,Face Mask,2025-12-11
+Female,21,None,5.43,3.1,Nasal Cannula,2025-12-12
+Female,60,Respiratory Distress,38.61,13.8,Mechanical Ventilation,2025-12-12
+Male,74,Heart Failure,13.43,4.6,CPAP,2025-12-13
+Female,57,Heart Failure,8.64,7.8,Nasal Cannula,2025-12-14
+Female,18,None,8.69,2.2,Nasal Cannula,2025-12-14
+Male,44,Pneumonia,10.4,9.8,Face Mask,2025-12-14
+Female,54,Hypoxemia,10.31,6.4,Face Mask,2025-12-15
+Female,38,Trauma,29.52,13.0,Oxygen Therapy,2025-12-15
+Male,33,Pneumonia,13.83,8.1,Face Mask,2025-12-16
+Male,55,COVID-19,33.91,12.8,Non-Rebreather Mask,2025-12-16
+Female,16,Asthma,4.93,3.2,Oxygen Therapy,2025-12-16
+Female,40,Pneumonia,13.13,6.6,Nasal Cannula,2025-12-17
+Male,58,Heart Failure,18.92,3.4,CPAP,2025-12-17
+Female,65,COVID-19,32.24,8.1,Non-Rebreather Mask,2025-12-18
+Female,52,Bronchitis,8.88,4.7,Nasal Cannula,2025-12-18
+Male,11,Respiratory Distress,38.79,14.5,Mechanical Ventilation,2025-12-19
+Female,59,Hypoxemia,13.37,6.7,Venturi Mask,2025-12-19
+Male,25,Bronchitis,9.89,3.7,Oxygen Therapy,2025-12-20
+Male,68,Hypoxemia,9.31,6.4,Face Mask,2025-12-20
+Female,71,Pneumonia,12.9,8.7,Nasal Cannula,2025-12-20
+Male,67,COVID-19,34.34,12.1,CPAP,2025-12-21
+Male,80,COPD,10.45,3.1,Venturi Mask,2025-12-21
+Male,47,Bronchitis,5.43,4.2,Oxygen Therapy,2025-12-21
+Male,60,Heart Failure,19.0,6.9,CPAP,2025-12-22
+Female,28,Trauma,33.34,14.4,Mechanical Ventilation,2025-12-22
+Female,66,Hypoxemia,10.24,6.8,Oxygen Therapy,2025-12-23
+Female,63,COVID-19,26.08,6.8,CPAP,2025-12-23
+Male,44,Hypoxemia,18.48,8.0,Venturi Mask,2025-12-23
+Male,32,Trauma,32.1,8.2,Mechanical Ventilation,2025-12-24
+Female,30,Respiratory Distress,34.64,6.6,Non-Rebreather Mask,2025-12-24
+Female,22,Hypoxemia,9.71,4.3,Oxygen Therapy,2025-12-25
+Male,16,Bronchitis,5.85,4.7,Nasal Cannula,2025-12-25
+Female,52,Bronchitis,11.28,3.8,Oxygen Therapy,2025-12-25
+Female,45,Asthma,7.82,5.8,Face Mask,2025-12-26
+Male,46,Trauma,31.51,14.7,Mechanical Ventilation,2025-12-26
+Female,40,Asthma,9.18,3.4,Oxygen Therapy,2025-12-26
+Female,11,Asthma,11.95,2.8,Oxygen Therapy,2025-12-27
+Female,33,Pneumonia,12.5,8.7,Oxygen Therapy,2025-12-28
+Male,29,Respiratory Distress,17.53,9.0,CPAP,2025-12-28
+Male,29,None,6.56,4.0,Oxygen Therapy,2025-12-28
+Male,14,Asthma,13.67,3.4,Nasal Cannula,2025-12-29
+Female,13,None,4.18,2.5,Oxygen Therapy,2025-12-29
+Male,36,Asthma,10.5,5.1,Face Mask,2025-12-30
+Female,38,Asthma,5.1,5.8,Nasal Cannula,2025-12-30
+Female,60,Respiratory Distress,15.34,14.7,Non-Rebreather Mask,2025-12-31
+Female,37,Bronchitis,12.97,3.5,Nasal Cannula,2025-12-31
+Female,44,Asthma,7.76,2.3,Nasal Cannula,2026-01-01
+Female,50,Respiratory Distress,25.28,10.8,Non-Rebreather Mask,2026-01-02
+Female,18,None,7.19,3.7,Oxygen Therapy,2026-01-02
+Female,56,COVID-19,37.03,9.7,Non-Rebreather Mask,2026-01-03
+Female,54,Heart Failure,16.08,5.1,Nasal Cannula,2026-01-03
+Female,54,COPD,7.97,3.6,Nasal Cannula,2026-01-04
+Female,57,Asthma,11.34,4.2,Nasal Cannula,2026-01-04
+Male,44,Trauma,33.28,14.1,Mechanical Ventilation,2026-01-05
+Male,66,Heart Failure,8.33,4.6,Oxygen Therapy,2026-01-05
+Female,59,COPD,13.3,2.4,Nasal Cannula,2026-01-06
+Female,42,Asthma,14.32,5.2,Nasal Cannula,2026-01-06
+Male,50,None,5.02,2.1,Nasal Cannula,2026-01-07
+Female,37,Hypoxemia,11.18,5.1,Oxygen Therapy,2026-01-07
+Male,57,Heart Failure,7.32,6.2,Oxygen Therapy,2026-01-07
+Female,54,COVID-19,25.46,9.1,CPAP,2026-01-08
+Male,21,Trauma,26.59,9.1,Face Mask,2026-01-08
+Female,57,Hypoxemia,15.3,6.9,Venturi Mask,2026-01-09
+Male,63,Hypoxemia,15.13,4.7,Face Mask,2026-01-09
+Female,45,None,5.72,2.1,Nasal Cannula,2026-01-10
+Male,12,None,4.66,2.6,Oxygen Therapy,2026-01-10
+Female,35,Hypoxemia,19.51,4.0,Oxygen Therapy,2026-01-11
+Male,80,Heart Failure,18.03,7.2,Oxygen Therapy,2026-01-12
+Female,19,Pneumonia,23.08,9.5,Nasal Cannula,2026-01-13
+Female,57,None,5.78,2.6,Nasal Cannula,2026-01-14
+Male,57,Trauma,32.84,13.8,Mechanical Ventilation,2026-01-14
+Male,33,Asthma,5.5,3.6,Oxygen Therapy,2026-01-15
+Male,39,Trauma,26.91,8.5,Face Mask,2026-01-16
+Male,46,Respiratory Distress,34.52,12.5,Mechanical Ventilation,2026-01-16
+Male,55,COPD,8.9,2.1,Nasal Cannula,2026-01-16
+Male,55,Asthma,13.28,4.0,Oxygen Therapy,2026-01-17
+Female,65,Bronchitis,5.23,2.5,Oxygen Therapy,2026-01-18
+Female,60,Bronchitis,7.84,3.8,Oxygen Therapy,2026-01-18
+Female,12,Bronchitis,7.24,3.1,Nasal Cannula,2026-01-19
+Female,35,Asthma,13.71,4.2,Oxygen Therapy,2026-01-20
+Female,69,Pneumonia,14.38,7.9,Face Mask,2026-01-20
+Male,66,COPD,16.53,3.5,Nasal Cannula,2026-01-21
+Male,8,Asthma,16.0,4.8,Nasal Cannula,2026-01-21
+Male,35,None,5.68,3.8,Nasal Cannula,2026-01-22
+Male,58,Trauma,20.62,10.3,Oxygen Therapy,2026-01-22
+Female,64,Heart Failure,20.21,7.3,Oxygen Therapy,2026-01-23
+Male,33,None,4.26,3.2,Oxygen Therapy,2026-01-23
+Male,53,Heart Failure,15.78,5.8,Nasal Cannula,2026-01-24
+Male,60,Trauma,29.09,13.8,Oxygen Therapy,2026-01-24
+Male,56,Respiratory Distress,22.97,9.3,Non-Rebreather Mask,2026-01-25
+Male,62,COPD,18.4,2.0,BiPAP,2026-01-25
+Male,47,Hypoxemia,21.39,9.0,Face Mask,2026-01-26
+Male,56,Trauma,17.54,9.1,Mechanical Ventilation,2026-01-27
+Male,58,None,5.54,2.1,Nasal Cannula,2026-01-28
+Female,67,COVID-19,35.93,12.8,CPAP,2026-01-28
+Female,78,COVID-19,21.01,14.1,CPAP,2026-01-29
+Female,41,None,6.34,3.6,Nasal Cannula,2026-01-30
+Male,60,Heart Failure,10.35,3.7,Oxygen Therapy,2026-01-30
+Male,51,Trauma,29.6,10.0,Face Mask,2026-01-31
+Female,72,Hypoxemia,15.24,4.9,Face Mask,2026-01-31
+Female,50,COVID-19,22.72,9.7,Non-Rebreather Mask,2026-02-01
+Male,42,Trauma,12.51,10.6,Face Mask,2026-02-01
+Female,56,Asthma,6.87,2.6,Nasal Cannula,2026-02-01
+Female,66,COPD,6.79,1.5,Venturi Mask,2026-02-02
+Male,68,Hypoxemia,16.73,7.3,Oxygen Therapy,2026-02-02
+Female,16,Respiratory Distress,14.68,8.1,Mechanical Ventilation,2026-02-02
+Female,16,None,5.5,3.7,Oxygen Therapy,2026-02-03
+Male,20,Respiratory Distress,25.53,9.9,Mechanical Ventilation,2026-02-04
+Female,39,COVID-19,25.52,12.0,Mechanical Ventilation,2026-02-04
+Male,51,Respiratory Distress,20.51,6.4,Mechanical Ventilation,2026-02-05
+Female,19,Trauma,18.21,13.5,Mechanical Ventilation,2026-02-05
+Female,14,Asthma,7.39,3.4,Nasal Cannula,2026-02-06
+Female,74,COPD,14.11,3.1,BiPAP,2026-02-06
+Male,28,Bronchitis,5.6,2.1,Nasal Cannula,2026-02-07
+Female,67,Hypoxemia,8.44,6.8,Face Mask,2026-02-08
+Female,70,Hypoxemia,11.98,9.2,Oxygen Therapy,2026-02-09
+Female,33,Asthma,12.95,5.0,Face Mask,2026-02-09
+Female,74,COPD,13.97,2.4,BiPAP,2026-02-10
+Male,61,Hypoxemia,15.23,4.5,Venturi Mask,2026-02-10
+Female,43,Respiratory Distress,26.54,6.7,CPAP,2026-02-11
+Female,53,Hypoxemia,16.28,6.6,Face Mask,2026-02-11
+Female,20,Trauma,18.35,14.1,Oxygen Therapy,2026-02-11
+Male,19,Hypoxemia,12.36,7.8,Face Mask,2026-02-12
+Male,56,COPD,10.38,3.2,Venturi Mask,2026-02-12
+Male,59,COPD,9.83,2.4,Venturi Mask,2026-02-12
+Male,55,None,4.86,3.9,Nasal Cannula,2026-02-13
+Male,39,Asthma,10.5,3.6,Face Mask,2026-02-13
+Male,53,Asthma,7.87,4.0,Nasal Cannula,2026-02-14
+Female,60,Hypoxemia,15.34,5.3,Venturi Mask,2026-02-15
+Male,17,Bronchitis,7.62,4.6,Nasal Cannula,2026-02-15
+Male,61,Bronchitis,9.68,4.0,Oxygen Therapy,2026-02-16
+Female,40,Respiratory Distress,32.4,12.4,CPAP,2026-02-16
+Female,68,COPD,8.01,1.8,Nasal Cannula,2026-02-16
+Male,33,Bronchitis,11.86,3.4,Oxygen Therapy,2026-02-17
+Male,25,Asthma,11.19,6.0,Face Mask,2026-02-18
+Male,56,Heart Failure,11.4,6.2,Nasal Cannula,2026-02-19
+Female,18,Respiratory Distress,16.0,11.8,Non-Rebreather Mask,2026-02-19
+Male,55,Heart Failure,7.98,3.8,Oxygen Therapy,2026-02-20
+Male,40,Trauma,27.23,14.3,Oxygen Therapy,2026-02-20
+Male,55,Hypoxemia,15.5,5.6,Face Mask,2026-02-20
+Male,43,Asthma,10.59,2.6,Oxygen Therapy,2026-02-21
+Female,65,None,3.14,3.7,Oxygen Therapy,2026-02-21
+Female,53,None,5.08,3.5,Oxygen Therapy,2026-02-22
+Female,51,Bronchitis,10.44,3.4,Oxygen Therapy,2026-02-23
+Female,77,Heart Failure,7.9,6.4,CPAP,2026-02-23
+Male,31,Bronchitis,9.75,2.9,Nasal Cannula,2026-02-24
+Female,26,Trauma,13.91,11.6,Mechanical Ventilation,2026-02-24
+Female,34,Asthma,4.51,2.6,Nasal Cannula,2026-02-25
+Female,27,None,7.67,3.6,Oxygen Therapy,2026-02-26
+Male,28,Trauma,20.4,15.0,Mechanical Ventilation,2026-02-26
+Female,16,Hypoxemia,14.07,9.7,Oxygen Therapy,2026-02-26
+Female,31,COVID-19,27.15,8.5,Non-Rebreather Mask,2026-02-27
+Female,44,Bronchitis,7.45,4.5,Nasal Cannula,2026-02-27
+Female,63,Hypoxemia,12.81,6.2,Venturi Mask,2026-02-27
+Female,63,COVID-19,25.09,6.7,CPAP,2026-02-28
+Female,17,Respiratory Distress,20.67,14.8,CPAP,2026-02-28
+Female,27,Trauma,19.22,12.2,Face Mask,2026-03-01
+Male,20,Pneumonia,19.26,8.3,Oxygen Therapy,2026-03-01
+Male,62,COPD,9.93,2.3,Venturi Mask,2026-03-02
+Female,49,None,5.55,3.0,Nasal Cannula,2026-03-02
+Female,42,None,6.37,2.7,Oxygen Therapy,2026-03-03
+Female,49,Heart Failure,17.6,5.4,Oxygen Therapy,2026-03-03
+Male,58,None,3.85,3.2,Oxygen Therapy,2026-03-04
+Female,21,None,7.74,2.1,Oxygen Therapy,2026-03-04
+Female,38,Pneumonia,17.67,4.9,Nasal Cannula,2026-03-05
+Female,59,None,5.59,3.4,Oxygen Therapy,2026-03-06
+Female,63,Respiratory Distress,33.05,9.4,Non-Rebreather Mask,2026-03-06
+Female,47,Respiratory Distress,27.86,12.9,Non-Rebreather Mask,2026-03-07
+Female,27,Hypoxemia,11.58,5.7,Oxygen Therapy,2026-03-07
+Female,60,Hypoxemia,13.87,8.1,Oxygen Therapy,2026-03-08
+Female,45,Bronchitis,8.59,2.9,Oxygen Therapy,2026-03-08
+Female,52,Respiratory Distress,29.7,14.6,Mechanical Ventilation,2026-03-08
+Male,37,Hypoxemia,16.97,7.9,Venturi Mask,2026-03-09
+Male,62,COVID-19,29.32,14.4,CPAP,2026-03-09
+Male,27,None,5.66,3.3,Oxygen Therapy,2026-03-10
+Male,44,Pneumonia,9.41,8.3,Nasal Cannula,2026-03-11
+Male,82,COPD,7.58,3.9,Venturi Mask,2026-03-11
+Female,51,Bronchitis,6.3,4.3,Nasal Cannula,2026-03-12
+Male,64,Hypoxemia,10.79,7.9,Oxygen Therapy,2026-03-12
+Male,44,Pneumonia,8.51,9.6,Oxygen Therapy,2026-03-13
+Female,59,Heart Failure,17.11,7.8,Oxygen Therapy,2026-03-13
+Female,54,Pneumonia,21.76,4.6,Face Mask,2026-03-14
+Female,56,Hypoxemia,18.67,7.1,Face Mask,2026-03-14
+Female,60,COPD,9.31,3.5,Nasal Cannula,2026-03-14
+Male,15,Hypoxemia,11.54,6.0,Face Mask,2026-03-15
+Male,67,COVID-19,32.19,14.1,Mechanical Ventilation,2026-03-15
+Female,48,Asthma,5.41,2.7,Nasal Cannula,2026-03-16
+Male,18,Trauma,20.04,10.7,Mechanical Ventilation,2026-03-16
+Female,55,Trauma,16.71,12.0,Oxygen Therapy,2026-03-17
+Male,21,Trauma,17.52,8.8,Oxygen Therapy,2026-03-17
+Female,17,Respiratory Distress,18.49,14.2,Non-Rebreather Mask,2026-03-18
+Male,26,None,5.27,3.0,Oxygen Therapy,2026-03-18
+Female,53,Trauma,26.44,13.3,Mechanical Ventilation,2026-03-19
+Male,71,COVID-19,15.8,13.9,Mechanical Ventilation,2026-03-19
+Female,14,Bronchitis,8.38,2.2,Nasal Cannula,2026-03-19
+Male,22,None,5.21,3.7,Nasal Cannula,2026-03-20
+Female,33,COVID-19,15.22,10.0,Mechanical Ventilation,2026-03-20
+Female,84,Heart Failure,14.07,5.8,CPAP,2026-03-21
+Female,34,Pneumonia,16.1,8.5,Oxygen Therapy,2026-03-22
+Female,40,Pneumonia,21.92,4.4,Face Mask,2026-03-22
+Female,8,Asthma,11.69,3.6,Face Mask,2026-03-23
+Female,72,Heart Failure,16.88,7.3,Nasal Cannula,2026-03-23
+Male,82,Heart Failure,10.17,6.3,CPAP,2026-03-23
+Female,69,Respiratory Distress,16.9,12.6,CPAP,2026-03-24
+Female,47,Pneumonia,13.94,8.3,Face Mask,2026-03-25
+Male,57,COVID-19,18.15,7.4,CPAP,2026-03-26
+Male,57,Asthma,11.66,3.7,Oxygen Therapy,2026-03-26
+Male,31,Pneumonia,8.47,4.6,Oxygen Therapy,2026-03-27
+Male,27,None,4.17,2.8,Oxygen Therapy,2026-03-27
+Male,36,COVID-19,19.15,14.9,Mechanical Ventilation,2026-03-27
+Female,48,None,7.38,2.5,Nasal Cannula,2026-03-28
+Male,54,Respiratory Distress,24.25,8.5,Mechanical Ventilation,2026-03-28
+Male,52,None,3.23,3.1,Nasal Cannula,2026-03-28
+Female,74,Heart Failure,10.52,3.7,Nasal Cannula,2026-03-29
+Female,32,Respiratory Distress,27.57,8.7,CPAP,2026-03-29
+Female,44,Pneumonia,13.44,7.2,Face Mask,2026-03-30
+Male,36,Hypoxemia,13.4,4.5,Face Mask,2026-03-30
+Male,52,Trauma,12.93,13.8,Oxygen Therapy,2026-03-30
+Male,16,None,5.94,3.6,Oxygen Therapy,2026-03-31
+Male,63,Respiratory Distress,19.33,13.8,CPAP,2026-03-31
+Male,30,Pneumonia,21.99,4.7,Face Mask,2026-04-01
+Male,54,Bronchitis,5.91,3.2,Nasal Cannula,2026-04-01
+Female,42,Trauma,18.47,11.7,Mechanical Ventilation,2026-04-01
+Female,61,Respiratory Distress,27.89,13.2,CPAP,2026-04-02
+Male,41,Trauma,22.13,10.9,Mechanical Ventilation,2026-04-02
+Male,60,COPD,11.79,3.8,Venturi Mask,2026-04-03
+Male,62,COPD,14.33,2.4,Nasal Cannula,2026-04-04
+Female,26,Bronchitis,9.13,4.9,Oxygen Therapy,2026-04-04
+Female,57,COPD,10.88,3.3,Nasal Cannula,2026-04-05
+Male,69,Respiratory Distress,13.64,13.6,CPAP,2026-04-05
+Male,44,Pneumonia,11.24,9.1,Oxygen Therapy,2026-04-06
+Male,58,COPD,6.6,2.6,Venturi Mask,2026-04-06
+Female,54,None,5.66,2.0,Nasal Cannula,2026-04-06
+Female,52,Pneumonia,19.38,4.1,Nasal Cannula,2026-04-07
+Male,54,Heart Failure,8.89,5.6,CPAP,2026-04-07
+Female,32,Hypoxemia,19.51,4.5,Venturi Mask,2026-04-08
+Male,54,Bronchitis,10.62,2.9,Nasal Cannula,2026-04-08
+Male,43,Pneumonia,14.66,6.3,Nasal Cannula,2026-04-09
+Male,67,COPD,9.31,3.1,BiPAP,2026-04-10
+Male,20,Asthma,10.92,5.6,Nasal Cannula,2026-04-10
+Male,19,Hypoxemia,18.79,9.6,Face Mask,2026-04-11
+Male,23,None,4.04,2.0,Nasal Cannula,2026-04-11
+Male,67,Heart Failure,12.8,5.8,CPAP,2026-04-12
+Female,51,Respiratory Distress,33.75,7.3,Non-Rebreather Mask,2026-04-13
+Female,9,Asthma,12.39,3.7,Nasal Cannula,2026-04-13
+Female,38,Trauma,26.1,12.4,Face Mask,2026-04-13
+Female,63,COVID-19,28.95,9.9,CPAP,2026-04-14
+Male,66,Heart Failure,6.98,6.6,CPAP,2026-04-14
+Female,62,COPD,6.05,1.8,BiPAP,2026-04-15
+Female,24,Trauma,19.76,8.6,Face Mask,2026-04-16
+Female,15,Respiratory Distress,24.19,6.8,CPAP,2026-04-16
+Female,18,Trauma,26.03,10.9,Mechanical Ventilation,2026-04-17
+Male,68,Respiratory Distress,15.73,12.2,CPAP,2026-04-17
+Female,24,Hypoxemia,11.31,5.0,Oxygen Therapy,2026-04-18
+Female,65,Hypoxemia,19.33,6.2,Oxygen Therapy,2026-04-18
+Male,39,Bronchitis,4.05,2.4,Nasal Cannula,2026-04-19
+Female,72,Heart Failure,11.17,5.2,Nasal Cannula,2026-04-19
+Male,31,None,6.48,3.2,Nasal Cannula,2026-04-20
+Female,21,Bronchitis,6.33,4.9,Oxygen Therapy,2026-04-20
+Male,30,Bronchitis,10.29,2.8,Oxygen Therapy,2026-04-20
+Male,49,None,5.75,3.4,Oxygen Therapy,2026-04-21
+Male,38,Bronchitis,4.55,4.5,Oxygen Therapy,2026-04-21
+Female,56,Heart Failure,9.03,4.5,Oxygen Therapy,2026-04-22
+Female,77,COPD,15.91,1.7,BiPAP,2026-04-22
+Female,44,Bronchitis,10.33,3.6,Oxygen Therapy,2026-04-22
+Male,15,Respiratory Distress,19.81,11.9,CPAP,2026-04-23
+Male,48,None,4.66,3.9,Nasal Cannula,2026-04-23
+Male,12,Asthma,11.47,2.9,Face Mask,2026-04-24
+Male,59,Respiratory Distress,28.99,9.5,Mechanical Ventilation,2026-04-24
+Male,46,Respiratory Distress,18.5,10.3,CPAP,2026-04-25
+Male,59,Asthma,7.12,2.6,Oxygen Therapy,2026-04-25
+Female,50,COVID-19,29.88,6.9,CPAP,2026-04-26
+Female,14,Bronchitis,9.69,2.1,Oxygen Therapy,2026-04-26
+Male,28,Trauma,15.14,9.7,Oxygen Therapy,2026-04-27
+Female,61,Respiratory Distress,25.85,13.2,CPAP,2026-04-28
+Female,49,Heart Failure,8.37,6.1,Oxygen Therapy,2026-04-29
+Male,61,Heart Failure,14.45,4.4,CPAP,2026-04-30
+Male,57,Asthma,7.26,2.7,Oxygen Therapy,2026-04-30
+Female,48,Hypoxemia,12.66,5.9,Face Mask,2026-05-01
+Male,70,Heart Failure,13.41,7.2,Nasal Cannula,2026-05-01
+Male,58,Hypoxemia,10.86,5.9,Oxygen Therapy,2026-05-02
+Male,29,Asthma,7.88,2.6,Oxygen Therapy,2026-05-02
+Male,48,None,5.43,2.8,Nasal Cannula,2026-05-02
+Male,67,COPD,9.15,1.9,BiPAP,2026-05-03
+Male,65,Bronchitis,7.88,4.9,Oxygen Therapy,2026-05-03
+Female,74,Heart Failure,14.52,5.5,Oxygen Therapy,2026-05-04
+Male,70,COPD,8.21,3.5,Nasal Cannula,2026-05-05
+Female,32,Pneumonia,18.93,5.7,Face Mask,2026-05-05
+Male,46,Bronchitis,8.34,2.8,Nasal Cannula,2026-05-06
+Male,46,Trauma,19.65,9.5,Oxygen Therapy,2026-05-06
+Female,30,COVID-19,32.97,8.4,CPAP,2026-05-07
+Female,13,Asthma,11.38,2.8,Nasal Cannula,2026-05-07
+Female,22,None,7.07,3.6,Oxygen Therapy,2026-05-08
+Female,52,Pneumonia,10.36,7.6,Nasal Cannula,2026-05-08
+Female,51,Hypoxemia,14.17,9.7,Venturi Mask,2026-05-09
+Male,54,Asthma,13.92,5.7,Face Mask,2026-05-09
+Male,59,COPD,14.28,3.3,Nasal Cannula,2026-05-09
+Female,57,Heart Failure,13.53,6.2,Oxygen Therapy,2026-05-10
+Female,52,Heart Failure,15.23,7.0,Oxygen Therapy,2026-05-10
+Female,44,Hypoxemia,8.03,6.0,Venturi Mask,2026-05-11
+Female,46,Asthma,12.5,4.8,Oxygen Therapy,2026-05-11
+Male,75,Heart Failure,9.87,5.5,CPAP,2026-05-12
+Female,50,Hypoxemia,18.23,4.8,Face Mask,2026-05-12
+Male,24,Pneumonia,14.43,8.7,Face Mask,2026-05-13
+Male,34,Asthma,13.58,2.0,Face Mask,2026-05-13
+Female,57,COPD,9.6,1.7,BiPAP,2026-05-14
+Male,64,COPD,12.99,2.3,Venturi Mask,2026-05-15
+Male,6,Asthma,5.33,3.9,Nasal Cannula,2026-05-16
+Male,10,Bronchitis,11.91,4.5,Oxygen Therapy,2026-05-17
+Female,54,COPD,13.31,2.5,Nasal Cannula,2026-05-18
+Male,26,Asthma,5.37,5.5,Face Mask,2026-05-18
+Male,54,COPD,12.1,2.9,Venturi Mask,2026-05-19
+Female,63,COPD,13.48,2.0,Venturi Mask,2026-05-19
+Female,25,None,3.7,3.8,Oxygen Therapy,2026-05-20
+Female,28,Asthma,5.4,3.3,Face Mask,2026-05-20
+Male,30,Hypoxemia,16.65,7.6,Face Mask,2026-05-20
+Female,31,Pneumonia,10.64,7.6,Face Mask,2026-05-21
+Female,51,Heart Failure,7.35,5.5,CPAP,2026-05-21
+Male,45,None,7.67,4.0,Oxygen Therapy,2026-05-22
+Female,79,COPD,11.46,2.6,Venturi Mask,2026-05-22
+Male,11,Bronchitis,5.73,2.0,Nasal Cannula,2026-05-23
+Female,80,Heart Failure,10.83,5.1,Nasal Cannula,2026-05-24
+Male,37,Respiratory Distress,23.25,8.8,CPAP,2026-05-24
+Male,62,COVID-19,27.95,9.5,CPAP,2026-05-24
+Female,50,Asthma,12.46,4.9,Face Mask,2026-05-25
+Male,23,Pneumonia,16.57,4.7,Nasal Cannula,2026-05-25
+Female,60,Pneumonia,10.46,7.9,Face Mask,2026-05-25
+Male,57,COPD,11.23,3.9,BiPAP,2026-05-26
+Male,38,Hypoxemia,18.48,8.5,Oxygen Therapy,2026-05-27
+Male,27,Asthma,4.64,3.1,Face Mask,2026-05-27
+Male,43,None,3.28,3.0,Nasal Cannula,2026-05-28
+Male,35,None,3.51,2.5,Oxygen Therapy,2026-05-28
+Male,53,Asthma,12.59,2.0,Oxygen Therapy,2026-05-29
+Male,20,Pneumonia,20.88,6.2,Nasal Cannula,2026-05-29
+Female,32,Pneumonia,20.82,5.5,Nasal Cannula,2026-05-30
+Female,13,Asthma,4.53,4.7,Oxygen Therapy,2026-05-31
+Male,53,COVID-19,33.05,13.9,Non-Rebreather Mask,2026-05-31
+Female,20,Hypoxemia,14.29,6.7,Face Mask,2026-06-01
+Female,62,Hypoxemia,14.28,5.5,Face Mask,2026-06-01
+Male,37,COVID-19,16.7,14.4,Non-Rebreather Mask,2026-06-02
+Female,3,Respiratory Distress,30.43,6.0,Mechanical Ventilation,2026-06-02
+Male,28,Hypoxemia,14.99,9.9,Face Mask,2026-06-02
+Female,54,COPD,17.22,3.8,Nasal Cannula,2026-06-03
+Female,49,Respiratory Distress,15.95,14.8,Mechanical Ventilation,2026-06-03
+Male,46,Asthma,11.13,2.3,Face Mask,2026-06-03
+Male,61,COPD,17.55,3.6,BiPAP,2026-06-04
+Female,68,Heart Failure,7.93,4.4,Nasal Cannula,2026-06-04
+Male,21,None,6.13,2.3,Oxygen Therapy,2026-06-05
+Female,28,Respiratory Distress,20.5,8.8,Mechanical Ventilation,2026-06-06
+Male,16,Asthma,12.7,3.2,Oxygen Therapy,2026-06-06
+Female,37,COVID-19,40.6,12.4,Non-Rebreather Mask,2026-06-07
+Male,67,Heart Failure,9.3,7.1,Nasal Cannula,2026-06-07
+Male,16,Bronchitis,11.9,2.3,Oxygen Therapy,2026-06-08
+Male,9,Asthma,14.07,2.5,Nasal Cannula,2026-06-08
+Male,55,Trauma,30.62,9.8,Oxygen Therapy,2026-06-08
+Male,47,Asthma,5.66,5.2,Face Mask,2026-06-09
+Male,20,Trauma,32.93,8.4,Mechanical Ventilation,2026-06-10
+Female,79,Heart Failure,12.79,4.9,CPAP,2026-06-10
+Male,29,Trauma,32.09,10.0,Mechanical Ventilation,2026-06-10
+Male,53,None,8.53,3.0,Nasal Cannula,2026-06-11
+Female,30,Asthma,11.99,3.7,Nasal Cannula,2026-06-12
+Male,4,Respiratory Distress,22.89,13.0,Mechanical Ventilation,2026-06-12
+Female,46,Bronchitis,6.25,3.2,Oxygen Therapy,2026-06-13
+Male,19,Trauma,34.32,8.4,Mechanical Ventilation,2026-06-13
+Male,22,None,4.84,2.5,Oxygen Therapy,2026-06-14
+Male,30,Respiratory Distress,33.97,13.6,Non-Rebreather Mask,2026-06-14
+Male,59,COPD,15.39,2.3,Venturi Mask,2026-06-15
+Male,40,Trauma,25.46,11.9,Oxygen Therapy,2026-06-15
+Female,21,Bronchitis,5.12,2.1,Oxygen Therapy,2026-06-16
+Female,18,Pneumonia,12.44,9.5,Nasal Cannula,2026-06-17
+Female,74,COPD,16.61,3.8,Nasal Cannula,2026-06-17
+Male,55,Pneumonia,21.67,9.5,Face Mask,2026-06-18
+Female,11,Respiratory Distress,30.55,12.3,Mechanical Ventilation,2026-06-18
+Female,38,Trauma,28.96,14.8,Face Mask,2026-06-19
+Female,68,Heart Failure,14.66,6.5,CPAP,2026-06-19
+Female,26,None,7.67,2.8,Oxygen Therapy,2026-06-20
+Male,26,Hypoxemia,18.89,4.0,Face Mask,2026-06-20
+Female,61,None,5.28,2.4,Oxygen Therapy,2026-06-20
+Male,52,None,4.26,3.9,Oxygen Therapy,2026-06-21
+Male,28,Asthma,14.78,2.7,Face Mask,2026-06-21
+Female,34,Asthma,7.47,3.1,Nasal Cannula,2026-06-21
+Male,61,Hypoxemia,15.25,4.3,Oxygen Therapy,2026-06-22
+Female,67,COPD,11.22,2.4,BiPAP,2026-06-23
+Male,20,Bronchitis,12.38,2.2,Oxygen Therapy,2026-06-23
+Female,24,Trauma,32.18,10.4,Face Mask,2026-06-24
+Male,69,COPD,18.23,2.3,Nasal Cannula,2026-06-24
+Female,59,Pneumonia,16.19,7.6,Oxygen Therapy,2026-06-25
+Male,39,Pneumonia,15.79,9.8,Oxygen Therapy,2026-06-25
+Female,38,Respiratory Distress,15.06,8.1,Mechanical Ventilation,2026-06-25
+Male,13,Bronchitis,5.41,2.0,Oxygen Therapy,2026-06-26
+Female,24,None,4.43,2.1,Oxygen Therapy,2026-06-26
+Female,60,Asthma,9.17,3.2,Nasal Cannula,2026-06-27
+Female,15,Bronchitis,12.75,2.6,Oxygen Therapy,2026-06-27
+Male,26,Bronchitis,6.68,3.4,Oxygen Therapy,2026-06-28
+Male,24,Hypoxemia,10.38,8.0,Face Mask,2026-06-28
+Female,31,Respiratory Distress,23.59,6.5,Non-Rebreather Mask,2026-06-29
+Female,70,Respiratory Distress,25.81,13.8,Non-Rebreather Mask,2026-06-29
+Female,15,Bronchitis,11.17,4.7,Oxygen Therapy,2026-06-30
+Male,17,Respiratory Distress,38.7,7.6,Mechanical Ventilation,2026-06-30
+Male,36,COVID-19,41.1,9.8,Non-Rebreather Mask,2026-06-30
+Female,62,COPD,7.67,3.8,Venturi Mask,2026-07-01
+Female,83,Heart Failure,14.07,7.3,Nasal Cannula,2026-07-01
+Female,25,Pneumonia,18.32,4.9,Nasal Cannula,2026-07-02
+Male,18,None,8.44,3.6,Oxygen Therapy,2026-07-02
+Female,34,Trauma,25.64,12.6,Mechanical Ventilation,2026-07-02
+Female,64,COPD,14.73,3.0,Nasal Cannula,2026-07-03
+Male,73,Heart Failure,7.58,6.5,Nasal Cannula,2026-07-03
+Female,16,Hypoxemia,13.38,8.9,Venturi Mask,2026-07-04
+Female,69,Hypoxemia,22.62,8.1,Face Mask,2026-07-04
+Female,64,Hypoxemia,14.95,5.6,Venturi Mask,2026-07-05
+Female,41,COVID-19,35.32,12.7,CPAP,2026-07-06
+Male,50,Trauma,28.49,8.5,Face Mask,2026-07-06
+Male,24,Respiratory Distress,18.88,13.9,CPAP,2026-07-07
+Male,20,Pneumonia,15.0,4.3,Nasal Cannula,2026-07-07
+Female,50,Trauma,16.36,12.4,Mechanical Ventilation,2026-07-08
+Female,56,Trauma,31.82,9.2,Mechanical Ventilation,2026-07-09
+Female,28,Trauma,28.06,13.2,Mechanical Ventilation,2026-07-10
+Male,39,Hypoxemia,17.1,5.0,Oxygen Therapy,2026-07-10
+Male,71,COVID-19,26.46,8.4,Non-Rebreather Mask,2026-07-11
+Male,48,Pneumonia,18.88,7.9,Oxygen Therapy,2026-07-11
+Male,34,Pneumonia,14.12,8.8,Face Mask,2026-07-11
+Female,72,Hypoxemia,15.53,9.1,Venturi Mask,2026-07-12
+Female,47,COVID-19,31.88,10.7,Mechanical Ventilation,2026-07-12
+Male,12,None,6.86,3.1,Nasal Cannula,2026-07-12
+Female,10,Asthma,11.97,6.0,Face Mask,2026-07-13
+Female,56,Hypoxemia,18.19,9.7,Face Mask,2026-07-13
+Male,9,Respiratory Distress,21.89,9.6,Non-Rebreather Mask,2026-07-14
+Female,36,Pneumonia,15.71,9.4,Nasal Cannula,2026-07-15
+Male,33,None,7.12,3.4,Oxygen Therapy,2026-07-16
+Female,42,Bronchitis,12.33,4.5,Oxygen Therapy,2026-07-16
+Female,55,COPD,9.87,1.8,BiPAP,2026-07-17
+Male,44,Respiratory Distress,22.79,6.8,Non-Rebreather Mask,2026-07-17
+Female,65,Hypoxemia,17.28,6.2,Venturi Mask,2026-07-17
+Female,9,Asthma,15.46,4.3,Oxygen Therapy,2026-07-18
+Female,18,Asthma,12.43,2.5,Oxygen Therapy,2026-07-18
+Male,57,Heart Failure,11.63,8.0,CPAP,2026-07-19
+Female,21,None,4.49,3.7,Nasal Cannula,2026-07-19
+Male,38,Trauma,23.16,8.4,Oxygen Therapy,2026-07-20
+Male,67,COPD,11.89,1.8,Nasal Cannula,2026-07-21
+Female,72,Heart Failure,9.65,3.2,CPAP,2026-07-22
+Male,38,Trauma,27.81,9.3,Oxygen Therapy,2026-07-22
+Male,72,COVID-19,18.7,8.8,CPAP,2026-07-23
+Female,23,Respiratory Distress,21.34,13.4,CPAP,2026-07-23
+Female,57,Respiratory Distress,22.47,15.0,Non-Rebreather Mask,2026-07-24
+Female,58,Bronchitis,12.94,2.5,Nasal Cannula,2026-07-24
+Male,32,Pneumonia,12.6,9.9,Face Mask,2026-07-25
+Male,25,Pneumonia,21.95,8.3,Nasal Cannula,2026-07-25
+Female,82,Heart Failure,20.63,3.2,Oxygen Therapy,2026-07-25
+Male,62,Pneumonia,15.32,6.5,Oxygen Therapy,2026-07-26
+Female,62,Respiratory Distress,31.39,7.4,Non-Rebreather Mask,2026-07-26
+Female,57,Hypoxemia,12.93,8.0,Oxygen Therapy,2026-07-27
+Male,38,None,7.0,3.0,Oxygen Therapy,2026-07-27
+Female,18,Asthma,7.62,2.8,Oxygen Therapy,2026-07-28
+Male,47,Respiratory Distress,17.86,9.7,Non-Rebreather Mask,2026-07-28
+Female,49,COVID-19,33.09,6.0,Non-Rebreather Mask,2026-07-29
+Female,15,Asthma,5.46,5.1,Nasal Cannula,2026-07-29
+Male,44,Hypoxemia,9.89,5.6,Venturi Mask,2026-07-30
+Male,79,COPD,14.68,2.4,BiPAP,2026-07-30
+Male,60,Asthma,6.19,2.0,Nasal Cannula,2026-07-31
+Female,63,COPD,9.99,3.9,BiPAP,2026-07-31
+Female,29,Trauma,29.32,10.8,Face Mask,2026-08-01
+Female,59,Hypoxemia,15.79,8.8,Venturi Mask,2026-08-01
+Male,50,Asthma,13.42,2.2,Oxygen Therapy,2026-08-02
+Male,65,COPD,11.69,2.7,Venturi Mask,2026-08-02
+Female,61,None,7.31,3.2,Nasal Cannula,2026-08-03
+Female,81,COPD,10.11,1.8,BiPAP,2026-08-03
+Female,15,Hypoxemia,14.3,9.2,Face Mask,2026-08-04
+Male,54,None,6.44,3.0,Nasal Cannula,2026-08-05
+Male,39,None,6.32,3.0,Oxygen Therapy,2026-08-05
+Male,52,COPD,11.06,3.8,Venturi Mask,2026-08-06
+Female,65,Bronchitis,7.93,2.2,Nasal Cannula,2026-08-06
+Male,47,Hypoxemia,12.54,7.3,Oxygen Therapy,2026-08-07
+Female,34,Asthma,12.57,3.8,Oxygen Therapy,2026-08-08
+Female,17,Bronchitis,4.14,4.2,Oxygen Therapy,2026-08-08
+Female,50,Heart Failure,15.91,5.7,Oxygen Therapy,2026-08-08
+Female,44,None,5.28,3.3,Oxygen Therapy,2026-08-09
+Female,21,Trauma,17.98,13.9,Face Mask,2026-08-09
+Female,57,None,3.57,3.4,Nasal Cannula,2026-08-10
+Male,49,COVID-19,35.22,13.5,CPAP,2026-08-10
+Female,15,Respiratory Distress,22.83,14.1,CPAP,2026-08-11
+Male,64,Heart Failure,7.45,4.0,Oxygen Therapy,2026-08-11
+Female,78,COVID-19,16.37,12.5,Non-Rebreather Mask,2026-08-12
+Male,85,Heart Failure,11.41,6.9,CPAP,2026-08-12
+Male,43,None,3.24,3.1,Oxygen Therapy,2026-08-12
+Female,44,None,3.87,3.4,Oxygen Therapy,2026-08-13
+Male,64,COPD,14.83,3.0,Venturi Mask,2026-08-13
+Female,55,Respiratory Distress,28.77,14.2,Non-Rebreather Mask,2026-08-13
+Female,46,Trauma,22.85,9.0,Face Mask,2026-08-14
+Female,42,Respiratory Distress,24.18,12.6,Non-Rebreather Mask,2026-08-14
+Female,71,COVID-19,16.92,14.3,CPAP,2026-08-15
+Female,74,COPD,11.62,3.4,Nasal Cannula,2026-08-16
+Female,55,None,5.11,3.8,Nasal Cannula,2026-08-16
+Male,30,Asthma,4.57,2.2,Nasal Cannula,2026-08-17
+Female,73,COPD,6.62,1.9,BiPAP,2026-08-18
+Male,63,Hypoxemia,17.77,4.2,Face Mask,2026-08-18
+Male,51,Respiratory Distress,29.53,10.6,CPAP,2026-08-19
+Female,42,Pneumonia,21.66,9.7,Nasal Cannula,2026-08-20
+Male,18,Trauma,23.17,9.8,Oxygen Therapy,2026-08-20
+Male,50,Bronchitis,8.37,4.3,Oxygen Therapy,2026-08-21
+Male,61,None,3.89,2.6,Oxygen Therapy,2026-08-21
+Male,75,COPD,6.41,1.8,Venturi Mask,2026-08-22
+Female,23,Hypoxemia,11.06,7.5,Oxygen Therapy,2026-08-22
+Male,56,COPD,13.74,3.0,BiPAP,2026-08-23
+Female,43,None,6.54,2.1,Nasal Cannula,2026-08-23
+Male,77,COPD,11.43,1.9,Venturi Mask,2026-08-24
+Male,70,Heart Failure,13.96,7.4,CPAP,2026-08-24
+Male,63,Hypoxemia,19.96,7.2,Face Mask,2026-08-25
+Male,60,Pneumonia,20.66,6.7,Nasal Cannula,2026-08-25
+Male,14,None,6.98,2.8,Nasal Cannula,2026-08-26
+Female,22,Asthma,4.25,4.9,Oxygen Therapy,2026-08-26
+Female,49,Trauma,23.73,10.1,Face Mask,2026-08-27
+Male,24,Trauma,25.92,14.8,Face Mask,2026-08-27
+Male,48,Asthma,12.65,5.1,Oxygen Therapy,2026-08-28
+Male,61,Heart Failure,16.54,7.1,Oxygen Therapy,2026-08-28
+Male,57,Heart Failure,9.98,5.3,CPAP,2026-08-29
+Male,9,Asthma,9.58,5.2,Nasal Cannula,2026-08-29
+Female,54,COVID-19,22.9,10.1,CPAP,2026-08-30
+Male,42,Trauma,12.11,8.8,Oxygen Therapy,2026-08-30
+Male,50,Asthma,9.03,3.4,Nasal Cannula,2026-08-31
+Female,53,Hypoxemia,19.12,5.7,Oxygen Therapy,2026-08-31
+Female,28,Pneumonia,18.45,5.3,Face Mask,2026-09-01
+Female,20,Respiratory Distress,32.11,12.1,Mechanical Ventilation,2026-09-01
+Male,53,Trauma,12.75,9.0,Oxygen Therapy,2026-09-02
+Female,46,None,6.74,2.6,Oxygen Therapy,2026-09-02
+Male,44,Trauma,14.56,14.0,Oxygen Therapy,2026-09-03
+Male,71,COPD,7.81,2.0,BiPAP,2026-09-03
+Male,60,None,3.37,3.3,Nasal Cannula,2026-09-03
+Male,27,Hypoxemia,19.42,7.5,Face Mask,2026-09-04
+Male,60,Trauma,17.13,9.6,Oxygen Therapy,2026-09-04
+Female,59,COVID-19,28.51,9.0,CPAP,2026-09-05
+Female,77,COPD,7.69,3.9,BiPAP,2026-09-06
+Male,32,Trauma,19.85,13.2,Oxygen Therapy,2026-09-06
+Female,80,COPD,9.59,2.7,BiPAP,2026-09-07
+Female,50,Hypoxemia,15.28,5.1,Oxygen Therapy,2026-09-07
+Male,72,Hypoxemia,16.8,5.2,Face Mask,2026-09-07
+Male,60,Asthma,12.13,4.5,Oxygen Therapy,2026-09-08
+Female,61,None,5.76,3.8,Oxygen Therapy,2026-09-08
+Female,21,Respiratory Distress,31.61,9.5,Mechanical Ventilation,2026-09-09
+Female,20,None,3.45,3.0,Nasal Cannula,2026-09-09
+Male,72,Pneumonia,18.6,8.1,Face Mask,2026-09-10
+Female,57,COPD,11.66,2.9,Nasal Cannula,2026-09-10
+Female,82,COPD,13.61,1.6,BiPAP,2026-09-11
+Male,44,COVID-19,28.71,8.1,CPAP,2026-09-11
+Female,51,Respiratory Distress,31.39,14.3,Mechanical Ventilation,2026-09-11
+Male,51,Trauma,27.03,13.8,Oxygen Therapy,2026-09-12
+Male,50,Respiratory Distress,24.93,9.4,Non-Rebreather Mask,2026-09-13
+Female,30,Asthma,7.53,4.1,Nasal Cannula,2026-09-13
+Female,48,Bronchitis,5.11,3.5,Nasal Cannula,2026-09-14
+Male,54,COPD,8.12,3.1,Venturi Mask,2026-09-14
+Male,63,COPD,7.18,3.3,Venturi Mask,2026-09-14
+Male,48,Trauma,15.79,11.4,Oxygen Therapy,2026-09-15
+Male,63,Heart Failure,13.11,3.6,CPAP,2026-09-16
+Male,20,Respiratory Distress,32.29,7.5,CPAP,2026-09-17
+Male,66,Heart Failure,13.28,4.1,CPAP,2026-09-18
+Female,20,Bronchitis,8.81,4.5,Nasal Cannula,2026-09-18
+Female,57,COPD,15.22,3.2,Venturi Mask,2026-09-19
+Male,26,None,3.54,2.8,Nasal Cannula,2026-09-19
+Female,21,Respiratory Distress,22.47,6.9,Non-Rebreather Mask,2026-09-20
+Male,23,Pneumonia,20.63,8.0,Nasal Cannula,2026-09-21
+Male,57,Respiratory Distress,31.25,9.8,Non-Rebreather Mask,2026-09-21
+Male,78,Heart Failure,15.66,4.8,Nasal Cannula,2026-09-22
+Male,39,None,6.83,2.5,Oxygen Therapy,2026-09-22
+Female,44,Asthma,5.89,3.6,Oxygen Therapy,2026-09-23
+Male,51,Pneumonia,10.88,6.3,Oxygen Therapy,2026-09-23
+Female,41,Trauma,23.73,9.1,Face Mask,2026-09-23
+Female,48,Respiratory Distress,26.97,8.5,Non-Rebreather Mask,2026-09-24
+Female,63,COVID-19,22.14,10.3,Mechanical Ventilation,2026-09-24
+Female,51,Hypoxemia,12.78,8.6,Venturi Mask,2026-09-25
+Male,75,COPD,12.99,2.6,Nasal Cannula,2026-09-25
+Female,78,COVID-19,27.51,13.2,CPAP,2026-09-26
+Male,42,Pneumonia,9.28,4.0,Face Mask,2026-09-27
+Female,81,COPD,6.64,2.6,Venturi Mask,2026-09-27
+Male,52,Asthma,8.01,5.7,Face Mask,2026-09-28
+Male,64,Hypoxemia,13.27,7.8,Oxygen Therapy,2026-09-29
+Female,40,COVID-19,25.23,13.1,Non-Rebreather Mask,2026-09-29

@@ -10,7 +10,11 @@ require '../../include/dbsol/conn.php';
 
 $authService = new AuthService();
 $hospitalService = new HospitalService();
-$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? 'test';
+// Action B2: enforce strong AUTH_TOKEN
+$authToken = $_ENV['AUTH_TOKEN'] ?? $_ENV['authtoken'] ?? '';
+if (strlen($authToken) < 24 || $authToken === 'test') {
+	throw new RuntimeException('AUTH_TOKEN must be set to a long random value');
+}
 
 $app = new \Slim\App;
 
@@ -36,6 +40,7 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 		$request = $request->withAttribute('user', $decoded);
 		return $next($request, $response);
 	} catch (\Firebase\JWT\ExpiredException $e) {
+		error_log("JWT Expired: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
@@ -44,6 +49,7 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 				'message' => 'Token has expired'
 			], JSON_UNESCAPED_SLASHES));
 	} catch (\Firebase\JWT\SignatureInvalidException $e) {
+		error_log("JWT Invalid Signature: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
@@ -52,12 +58,13 @@ $authMiddleware = function ($request, $response, $next) use ($authService) {
 				'message' => 'Invalid token signature'
 			], JSON_UNESCAPED_SLASHES));
 	} catch (Exception $e) {
+		error_log("JWT Error: " . $e->getMessage());
 		return $response->withStatus(401)
 			->withHeader('Content-Type', 'application/json')
 			->write(json_encode([
 				'status'  => 'error',
 				'code'    => 'TOKEN_INVALID',
-				'message' => 'Invalid token: ' . $e->getMessage()
+				'message' => 'Invalid token'
 			], JSON_UNESCAPED_SLASHES));
 	}
 };
@@ -94,8 +101,11 @@ $app->get('/dashboard', function (Request $request, Response $response, array $a
 
 		$mainDb = Database::getMainDbName();
 
-		$lastSixMonthsUsage = R::getAll("SELECT DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M') AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY FROM_UNIXTIME(o.tym) DESC", [$refid]);
-		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE (hospital_id = ? OR hospitalID = ?) AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE (p.hospital_id = ? OR p.hospitalID = ?) ORDER BY p.tym DESC", [$refid, $refid, $refid, $refid]);
+		// Action A4: Wrap %Y and %M in MIN() and order by MIN(o.tym) DESC
+		$lastSixMonthsUsage = R::getAll("SELECT MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY MIN(o.tym) DESC", [$refid]);
+
+		// Action A2: Remove hospitalID reference from predictions query
+		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE p.hospital_id = ? ORDER BY p.tym DESC", [$refid, $refid]);
 		$last_order = R::getRow("SELECT *, (SELECT size FROM `{$mainDb}`.oxygen WHERE oxygen.id = `{$mainDb}`.oxygen_order.product) AS size FROM `{$mainDb}`.oxygen_order WHERE order_by = ? ORDER BY tym DESC LIMIT 1", [$refid]);
 
 		if (empty($last_order) || empty($last_order["schedule_date"]) || $last_order["schedule_date"] === "0000-00-00") {
@@ -108,7 +118,8 @@ $app->get('/dashboard', function (Request $request, Response $response, array $a
 		$latestPredictRow = !empty($lastSixMonthPredict) ? $lastSixMonthPredict[0] : null;
 		$forecastStock = $latestPredictRow ? (float)($latestPredictRow["total_cubic_meters"] ?? 0) : 0;
 
-		$top = ["stock" => $forecastStock, "forecast_need" => $forecastStock, "days" => 30, "delivery_day" => $delivery_day];
+		// Action C5: Rename stock to forecast_need, compute or remove hard-coded days
+		$top = ["forecast_need" => $forecastStock, "stock" => $forecastStock, "delivery_day" => $delivery_day];
 
 		$return = array('status' => 'success', 'Description' => 'hospital informations endpoints', 'data' => ['lastSixMonthsUsage' => $lastSixMonthsUsage, 'lastSixMonthPredict' => $lastSixMonthPredict, "last_order" => $last_order ? [$last_order] : [], "top" => $top]);
 
@@ -325,31 +336,36 @@ $app->post('/placeorder', function (Request $request, Response $response) {
             throw new Exception("Duplicate order submission detected. Please wait before placing another identical order.");
         }
 
+        // Action A5 (Code A5): unpriced orders
         $productPrice = pricing($refid, $productSize);
-        if ($productPrice === "N/A" || !is_numeric($productPrice) || (float)$productPrice <= 0) {
-            throw new Exception("Pricing not available for selected product and hospital tier");
-        }
+        $pricePending = ($productPrice === "N/A" || !is_numeric($productPrice) || (float)$productPrice <= 0);
+        $unitPrice = $pricePending ? null : (float)$productPrice;
 
         // Normalize schedule date/time
         $scheduleDate = formatDate($scheduleDate);
         $scheduleTime = formatTime($scheduleTime);
 
+        // Keep the status "Awaiting Pick Up"
+        $status = "Awaiting Pick Up";
+
         // Create and save order
 		$sql = "INSERT INTO `{$mainDb}`.oxygen_order (`order_by`, payment, qty, product, discount, tym, urgency, order_type, schedule_date, schedule_time, order_state, personnel_name, usage_info, channel, order_source, `unitprice`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		$js =  R::exec($sql, [$refid, $payment, (int)$qty, $productId, (float)$discount, $createdAt, $urgence, $orderType, $scheduleDate, $scheduleTime, $status, $requester, $usage, $channel, $channelType, (float)$productPrice]);
+		$js =  R::exec($sql, [$refid, $payment, (int)$qty, $productId, (float)$discount, $createdAt, $urgence, $orderType, $scheduleDate, $scheduleTime, $status, $requester, $usage, $channel, $channelType, $unitPrice]);
 		$id = R::getInsertID();
 
         if ($id) {
 			notifyLite();
             $payload = [
-                'status'   => 'success',
-                'message'  => 'Order placed successfully',
-                'order_id' => $id,
-                'data'     => [
-                    'product'  => $productSize,
-                    'qty'      => $qty,
-                    'price'    => (float)$productPrice,
-                    'schedule' => trim(($scheduleDate ?? '') . ' ' . ($scheduleTime ?? ''))
+                'status'        => 'success',
+                'message'       => 'Order placed successfully',
+                'order_id'      => $id,
+                'price_pending' => $pricePending,
+                'data'          => [
+                    'product'       => $productSize,
+                    'qty'           => $qty,
+                    'price'         => $unitPrice,
+                    'price_pending' => $pricePending,
+                    'schedule'      => trim(($scheduleDate ?? '') . ' ' . ($scheduleTime ?? ''))
                 ]
             ];
             $response->getBody()->write(json_encode($payload, JSON_PRETTY_PRINT));

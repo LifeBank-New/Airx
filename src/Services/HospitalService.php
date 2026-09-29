@@ -20,14 +20,14 @@ class HospitalService
         );
 
         $usageQuery = "SELECT 
-            DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y') AS month_year, 
-            DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M') AS month_name, 
+            MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, 
+            MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, 
             SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters 
         FROM `{$mainDb}`.oxygen_order AS o 
         LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id 
         WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? 
         GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') 
-        ORDER BY FROM_UNIXTIME(o.tym) DESC";
+        ORDER BY MIN(o.tym) DESC";
 
         $lastSixMonthsUsage = R::getAll($usageQuery, [$hospitalId]);
 
@@ -39,13 +39,13 @@ class HospitalService
         INNER JOIN (
             SELECT MAX(tym) AS max_tym
             FROM `predictions`
-            WHERE (hospital_id = ? OR hospitalID = ?) AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')
         ) latest ON p.tym = latest.max_tym
-        WHERE (p.hospital_id = ? OR p.hospitalID = ?)
+        WHERE p.hospital_id = ?
         ORDER BY p.tym ASC";
 
-        $lastSixMonthPredict = R::getAll($predictQuery, [$hospitalId, $hospitalId, $hospitalId, $hospitalId]);
+        $lastSixMonthPredict = R::getAll($predictQuery, [$hospitalId, $hospitalId]);
 
         $ordersQuery = "SELECT *, (SELECT size FROM `{$mainDb}`.oxygen WHERE oxygen.id = `{$mainDb}`.oxygen_order.product) AS size 
         FROM `{$mainDb}`.oxygen_order 
@@ -72,8 +72,8 @@ class HospitalService
     {
         $hospital = R::dispense('hospital');
         $hospital->name          = $data['name'] ?? '';
-        $hospital->addressLine1  = $data['addressLine1'] ?? '';
-        $hospital->addressLine2  = $data['addressLine2'] ?? '';
+        $hospital->addressLine1  = $data['addressLine1'] ?? $data['address_1'] ?? $data['address'] ?? '';
+        $hospital->addressLine2  = $data['addressLine2'] ?? $data['address_2'] ?? '';
         $hospital->city          = $data['city'] ?? '';
         $hospital->state         = $data['state'] ?? '';
         $hospital->hospitals_type= $data['type'] ?? $data['hospitals_type'] ?? '';
