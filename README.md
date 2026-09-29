@@ -14,7 +14,6 @@ AirX is a high-performance, lightweight REST API built to forecast hospital oxyg
 * **Database**: MySQL (5.7+ or 8.0+)
 * **Authentication & Security**: [Firebase PHP-JWT](https://github.com/firebase/php-jwt) (Bearer Token validation, `HS256`, login rate-limiting)
 * **Environment Management**: [vlucas/phpdotenv](https://github.com/vlucas/phpdotenv)
-* **Continuous Integration**: GitHub Actions automated testing across PHP 7.3 – 8.3
 * **ML / Prediction Engine**: Multi-tier engine combining linear clinical regression, historical autoregressive time-series OLS with meteorological normalization, and hold-out MAE/MAPE validation (Planned Roadmap: Dedicated `scikit-learn` / `XGBoost` Python microservice & deep time-series forecasting)
 
 ---
@@ -30,9 +29,6 @@ airx/
 ├── .htaccess                   # Apache URL rewriting & sensitive file blocking (403 Forbidden)
 ├── demo_monthly_usage.csv      # Compliant 12-month facility aggregated oxygen usage demo dataset
 ├── phpunit.xml.dist            # PHPUnit test runner configuration
-├── .github/
-│   └── workflows/
-│       └── tests.yml           # CI test matrix across PHP 7.3 to 8.3
 ├── src/                        # PSR-4 Modular OOP Services & Configs
 │   ├── Config/
 │   │   └── Database.php        # Centralized DB setup, auto-migrations & multi-schema routing
@@ -43,10 +39,6 @@ airx/
 ├── include/
 │   ├── dbsol/                  # RedBeanPHP connection and ORM core
 │   └── functions/              # Helper calculations & weather normalizations
-├── scripts/
-│   ├── generate_sample_csv.py  # Synthetic test data generation utility
-│   └── migrations/
-│       └── code_a3.sql         # SQL schema migration for predictions & support tables
 ├── tests/                      # Automated Test Suite (PHPUnit 9.6)
 │   └── Services/
 │       ├── AuthServiceTest.php     # Password hashing & JWT validation tests
@@ -102,11 +94,8 @@ airx/
    ```
    > ⚠️ **Security Notice:** `AUTH_TOKEN` must be at least 24 characters and cannot be set to `'test'`. All endpoints enforce a strict server-level hard stop if invalid.
 
-4. **Run Database Migrations**:
-   AirX auto-migrates missing columns (`predictions.method`, `predictions.accuracy`, `support.created_at`, `support.updated_at`, `facility_monthly_usage`) upon connection before database freezing. You can also run the SQL script directly:
-   ```bash
-   mysql -u your_db_user -p airx < scripts/migrations/code_a3.sql
-   ```
+4. **Database Auto-Migration**:
+   AirX automatically inspects and migrates missing schema columns (`predictions.method`, `predictions.accuracy`, `support.created_at`, `support.updated_at`, `facility_monthly_usage`) upon connection before database freezing.
 
 5. **Run Locally**:
    Using PHP's built-in development server:
@@ -294,9 +283,9 @@ While the current production architecture executes high-efficiency in-process OL
 
 ---
 
-## 🧪 Testing & CI
+## 🧪 Automated Testing
 
-AirX uses **PHPUnit 9.6** with an automated **GitHub Actions CI** pipeline testing across PHP 7.3 through 8.3:
+AirX uses **PHPUnit 9.6** for test coverage across PHP 7.3 through 8.3:
 
 ```bash
 # Run unit tests locally
