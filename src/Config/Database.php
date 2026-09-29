@@ -46,27 +46,49 @@ class Database
         // Action A3: Add new columns before freezing the database (Code A3)
         try {
             if (R::testConnection()) {
-                $predCols = R::inspect('predictions');
+                $hasColumn = function(array $cols, string $colName): bool {
+                    return array_key_exists($colName, $cols) || in_array($colName, $cols, true) || in_array($colName, array_keys($cols), true);
+                };
+
+                $predCols = R::inspect('predictions') ?: [];
                 if (!empty($predCols)) {
-                    if (!in_array('method', $predCols, true)) {
-                        R::exec("ALTER TABLE `predictions` ADD COLUMN `method` VARCHAR(32) NULL");
+                    if (!$hasColumn($predCols, 'method')) {
+                        try {
+                            R::exec("ALTER TABLE `predictions` ADD COLUMN `method` VARCHAR(32) NULL");
+                        } catch (\Exception $ex) {
+                            // Column already exists
+                        }
                     }
-                    if (!in_array('accuracy', $predCols, true)) {
-                        R::exec("ALTER TABLE `predictions` ADD COLUMN `accuracy` DECIMAL(6,2) NULL");
+                    if (!$hasColumn($predCols, 'accuracy')) {
+                        try {
+                            R::exec("ALTER TABLE `predictions` ADD COLUMN `accuracy` DECIMAL(6,2) NULL");
+                        } catch (\Exception $ex) {
+                            // Column already exists
+                        }
                     }
                 }
-                $suppCols = R::inspect('support');
+                $suppCols = R::inspect('support') ?: [];
                 if (!empty($suppCols)) {
-                    if (!in_array('created_at', $suppCols, true)) {
-                        R::exec("ALTER TABLE `support` ADD COLUMN `created_at` DATETIME NULL");
+                    if (!$hasColumn($suppCols, 'created_at')) {
+                        try {
+                            R::exec("ALTER TABLE `support` ADD COLUMN `created_at` DATETIME NULL");
+                        } catch (\Exception $ex) {
+                            // Column already exists
+                        }
                     }
-                    if (!in_array('updated_at', $suppCols, true)) {
-                        R::exec("ALTER TABLE `support` ADD COLUMN `updated_at` DATETIME NULL");
+                    if (!$hasColumn($suppCols, 'updated_at')) {
+                        try {
+                            R::exec("ALTER TABLE `support` ADD COLUMN `updated_at` DATETIME NULL");
+                        } catch (\Exception $ex) {
+                            // Column already exists
+                        }
                     }
                 }
             }
         } catch (\Exception $e) {
-            error_log("Schema migration notice: " . $e->getMessage());
+            if (strpos($e->getMessage(), 'Duplicate column') === false && strpos($e->getMessage(), '1060') === false) {
+                error_log("Schema migration notice: " . $e->getMessage());
+            }
         }
 
         // Freeze RedBean schema updates in production
