@@ -28,6 +28,9 @@
 		"phpunit/phpunit": "^9.6"
 	},
 	"config": {
+		"platform": {
+			"php": "7.3.33"
+		},
 		"policy": {
 			"advisories": {
 				"ignore-id": ["PKSA-w57n-mhp6-c9sd"]

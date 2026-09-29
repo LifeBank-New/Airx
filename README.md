@@ -15,7 +15,7 @@ AirX is a high-performance, lightweight REST API built to forecast hospital oxyg
 * **Authentication & Security**: [Firebase PHP-JWT](https://github.com/firebase/php-jwt) (Bearer Token validation, `HS256`, login rate-limiting)
 * **Environment Management**: [vlucas/phpdotenv](https://github.com/vlucas/phpdotenv)
 * **Continuous Integration**: GitHub Actions automated testing across PHP 7.3 – 8.3
-* **ML / Prediction Engine**: Multi-tier engine combining linear clinical regression, historical autoregressive time-series OLS with meteorological normalization, and hold-out MAE/MAPE validation
+* **ML / Prediction Engine**: Multi-tier engine combining linear clinical regression, historical autoregressive time-series OLS with meteorological normalization, and hold-out MAE/MAPE validation (Planned Roadmap: Dedicated `scikit-learn` / `XGBoost` Python microservice & deep time-series forecasting)
 
 ---
 
@@ -264,6 +264,21 @@ Accuracy is evaluated dynamically using out-of-sample hold-out validation:
 
 ### 4. Telemetry & Audit Persistence
 Every prediction run records telemetry to the `predictions` table (`hospital_id`, `predictions`, `method`, `accuracy`, `tym`), ensuring transparent auditing and longitudinal tracking on the hospital dashboard.
+
+### 5. Planned Future Prediction Model Roadmap 🔮
+While the current production architecture executes high-efficiency in-process OLS multiple regression and seasonal moving averages natively in PHP 7.3+, the platform design includes a planned multi-phase Machine Learning roadmap:
+
+* **Phase 1 (Microservice Architecture)**:
+  * Extract time-series prediction endpoints to an asynchronous Python microservice utilizing `scikit-learn` and `FastAPI`.
+  * Communicate between the Slim PHP core and the Python ML service via secure internal tokens (`AUTH_TOKEN`).
+* **Phase 2 (Advanced Non-Linear Forecasting)**:
+  * **Gradient Boosted Decision Trees (`XGBoost` / `LightGBM`)**: Model non-linear interactions between multi-city climatological patterns, holiday surges, epidemic outbreaks, and regional oxygen consumption.
+  * **Probabilistic Forecasting (`Prophet` / NeuralProphet)**: Generate dynamic confidence intervals ($P_{10}$, $P_{50}$, $P_{90}$) to inform adaptive safety buffers and automated reorder points.
+* **Phase 3 (Deep Sequential Learning)**:
+  * **LSTM & Temporal Fusion Transformers (TFT)**: Ingest multi-facility historical consumption sequences paired with static facility metadata (bed capacity, ICU beds, oxygen plant presence) and dynamic covariates.
+* **Phase 4 (Automated Continuous Retraining & MLOps)**:
+  * Automated retraining pipelines triggered upon monthly batch CSV telemetry ingestion.
+  * Model registry tracking model drift, out-of-sample MAPE metrics, and canary rollout of candidate models.
 
 ---
 
