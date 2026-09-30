@@ -5,6 +5,8 @@
  *
  * Issue R3: Migrates legacy patient records from `data` table to `facility_monthly_usage`
  * in aggregated monthly buckets, verifies 100% data integrity, and drops `data` table.
+ * @license MIT
+ * @copyright 2026 LifeBank Nigeria (developer@lifebank.ng)
  *
  * Usage:
  *   php bin/migrate_legacy_data.php [options]

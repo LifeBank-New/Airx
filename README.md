@@ -306,3 +306,11 @@ Test coverage includes:
 
 * **LifeBank Tech Team** — [developer@lifebank.ng](mailto:developer@lifebank.ng)
 * Website: [lifebank.ng](https://lifebank.ng)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2026 LifeBank Nigeria.
