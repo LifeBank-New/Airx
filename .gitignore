@@ -35,8 +35,9 @@ Thumbs.db
 /temp/
 upload_*
 
-# Allow sample and demo data files
-!*.csv
+# CSV Files: allow only demo_monthly_usage.csv and block all others
+*.csv
+!demo_monthly_usage.csv
 
 
 

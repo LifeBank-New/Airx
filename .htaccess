@@ -11,6 +11,19 @@ RewriteEngine On
     </IfModule>
 </FilesMatch>
 
+# Allow only demo_monthly_usage.csv, block all other CSV files from direct access
+<FilesMatch "(?i)\.csv$">
+    <If "%{REQUEST_URI} !~ /demo_monthly_usage\.csv$/">
+        <IfModule mod_authz_core.c>
+            Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            Order allow,deny
+            Deny from all
+        </IfModule>
+    </If>
+</FilesMatch>
+
 # Deny access to hidden dotfiles and directories (e.g. .git, .env) with 403 Forbidden
 RewriteRule (^|/)\. - [F]
 

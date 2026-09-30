@@ -24,8 +24,6 @@ if (strlen($authToken) < 24 || $authToken === 'test') {
 	throw new RuntimeException('AUTH_TOKEN must be set to a long random value (minimum 24 characters and not "test")');
 }
 
-// Action A1: Run database migration if legacy data table exists
-migrateDataToFacilityMonthlyUsage();
 
 $app = new \Slim\App;
 
@@ -408,78 +406,3 @@ function parseCsvFile($path)
 	return ['headers' => $headers, 'rows' => $rows];
 }
 
-/**
- * Action A1: Migration from legacy patient data table to facility_monthly_usage.
- * Drops legacy data table only after aggregated totals match.
- */
-function migrateDataToFacilityMonthlyUsage()
-{
-	try {
-		if (!R::testConnection()) {
-			return;
-		}
-
-		// Ensure target table exists
-		R::exec("CREATE TABLE IF NOT EXISTS `facility_monthly_usage` (
-			`id` INT AUTO_INCREMENT PRIMARY KEY,
-			`hospital_id` INT NOT NULL,
-			`hospitalID` INT NOT NULL,
-			`period` VARCHAR(7) NOT NULL,
-			`oxygen_used_m3` DECIMAL(10,2) NOT NULL,
-			`created_at` DATETIME NULL,
-			KEY `idx_hospital_id` (`hospital_id`),
-			KEY `idx_hospitalID` (`hospitalID`),
-			KEY `idx_period` (`period`),
-			UNIQUE KEY `uniq_hospital_period` (`hospital_id`, `period`)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-		// Check if legacy table 'data' exists
-		$tables = R::inspect();
-		if (!in_array('data', $tables, true)) {
-			return;
-		}
-
-		$rowCount = (int)R::getCell("SELECT COUNT(*) FROM `data`");
-		if ($rowCount > 0) {
-			$oldTotal = (float)R::getCell("SELECT SUM(estimate_need) FROM `data`");
-
-			// Aggregate monthly totals per hospital
-			$aggregated = R::getAll("
-				SELECT 
-					hospitalID, 
-					DATE_FORMAT(date_used, '%Y-%m') AS period, 
-					ROUND(SUM(estimate_need), 2) AS total_oxygen,
-					MIN(created_at) AS created_at
-				FROM `data`
-				WHERE date_used IS NOT NULL AND date_used != '' AND date_used != '0000-00-00'
-				GROUP BY hospitalID, DATE_FORMAT(date_used, '%Y-%m')
-			");
-
-			foreach ($aggregated as $row) {
-				$hosId = (int)$row['hospitalID'];
-				$period = $row['period'];
-				$totalOxy = (float)$row['total_oxygen'];
-				$createdAt = $row['created_at'] ?: date('Y-m-d H:i:s');
-
-				R::exec("INSERT INTO `facility_monthly_usage` (`hospital_id`, `hospitalID`, `period`, `oxygen_used_m3`, `created_at`) 
-						VALUES (?, ?, ?, ?, ?) 
-						ON DUPLICATE KEY UPDATE `oxygen_used_m3` = VALUES(`oxygen_used_m3`)",
-					[$hosId, $hosId, $period, $totalOxy, $createdAt]
-				);
-			}
-
-			// Verify totals before dropping
-			$newTotal = (float)R::getCell("SELECT SUM(oxygen_used_m3) FROM `facility_monthly_usage`");
-			if (abs($oldTotal - $newTotal) < 0.05) {
-				R::exec("DROP TABLE `data`");
-				error_log("Migration successful: legacy `data` table dropped after matching totals ($oldTotal == $newTotal).");
-			} else {
-				error_log("Migration warning: totals mismatch ($oldTotal vs $newTotal). Legacy `data` table retained.");
-			}
-		} else {
-			R::exec("DROP TABLE `data`");
-		}
-	} catch (Exception $e) {
-		error_log("Data migration error: " . $e->getMessage());
-	}
-}

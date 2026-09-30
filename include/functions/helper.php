@@ -380,6 +380,11 @@ function validateHistoryData(array $history): array
     return $validated;
 }
 
+function validateHistoricalData(array $history): array
+{
+    return validateHistoryData($history);
+}
+
 /**
  * Action C3: Provide meteorological statistics using monthly climatological averages.
  * Removed unused external geocoding HTTP call.

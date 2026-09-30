@@ -336,7 +336,9 @@ $app->get('/hospital/predict', function (Request $request, Response $response) u
 		}
 		unset($row);
 
-		$validatedHistory = validateHistoricalData($history);
+		$validatedHistory = function_exists('validateHistoricalData') 
+			? validateHistoricalData($history) 
+			: validateHistoryData($history);
 
 		if (empty($validatedHistory)) {
 			return $response->withStatus(200)

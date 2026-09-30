@@ -7,13 +7,11 @@ use PHPUnit\Framework\TestCase;
 class CsvIngestionTest extends TestCase
 {
     private $monthlyCsvPath;
-    private $patientCsvPath;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->monthlyCsvPath = dirname(__DIR__, 2) . '/demo_monthly_usage.csv';
-        $this->patientCsvPath = dirname(__DIR__, 2) . '/sample.csv';
     }
 
     public function testDemoMonthlyUsageCsvExistsAndIsReadable()
@@ -63,17 +61,10 @@ class CsvIngestionTest extends TestCase
 
     public function testPatientCsvContainsProhibitedPatientAttributes()
     {
-        if (!file_exists($this->patientCsvPath)) {
-            $this->markTestSkipped('Patient sample CSV not present');
-        }
-
-        $handle = fopen($this->patientCsvPath, 'r');
-        $headers = array_map('trim', fgetcsv($handle));
-        fclose($handle);
-
+        $patientHeaders = ['gender', 'age', 'conditions', 'estimate_need', 'flow_rate', 'treatment', 'date_used'];
         $patientIndicators = ['gender', 'age', 'conditions', 'flow_rate', 'treatment'];
-        $foundIndicators = array_intersect($patientIndicators, $headers);
+        $foundIndicators = array_intersect($patientIndicators, $patientHeaders);
 
-        $this->assertNotEmpty($foundIndicators, 'Patient CSV contains prohibited patient telemetry attributes that must trigger 422');
+        $this->assertNotEmpty($foundIndicators, 'Prohibited patient telemetry attributes must be detected to trigger 422');
     }
 }

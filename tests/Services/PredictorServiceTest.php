@@ -76,4 +76,23 @@ class PredictorServiceTest extends TestCase
         $this->assertEquals('no_data', $result['method']);
         $this->assertEquals(0.0, $result['accuracy']);
     }
+
+    public function testValidateHistoricalDataHelperFunctions()
+    {
+        require_once dirname(__DIR__, 2) . '/include/functions/helper.php';
+
+        $rawHistory = [
+            ['month' => '2025-10', 'total_cubic_meters' => 310.5, 'avg_temp' => 28.0, 'avg_humidity' => 75.0],
+            ['month' => 'invalid-date', 'total_cubic_meters' => 100.0],
+            ['month' => '2025-11', 'total_cubic_meters' => -50.0]
+        ];
+
+        $validated1 = validateHistoryData($rawHistory);
+        $validated2 = validateHistoricalData($rawHistory);
+
+        $this->assertCount(1, $validated1);
+        $this->assertEquals($validated1, $validated2);
+        $this->assertEquals('2025-10', $validated1[0]['month']);
+        $this->assertEquals(310.5, $validated1[0]['total_cubic_meters']);
+    }
 }
