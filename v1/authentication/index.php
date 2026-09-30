@@ -100,17 +100,27 @@ $app->post('/login', function (Request $request, Response $response) use ($authS
 			} catch (Exception $ex) {}
 		}
 
-		// Action B4: Look in secure_login or read from user table
-		$login = R::getRow("SELECT * FROM `{$mainDb}`.`secure_login` WHERE `email` = ?", [$user_id]);
+		// Action B4: Look in secure_login or read from local user table
+		$login = null;
+		try {
+			$login = R::getRow("SELECT * FROM `{$mainDb}`.`secure_login` WHERE `email` = ?", [$user_id]);
+		} catch (Exception $e) {
+			$login = null;
+		}
+
 		if (!$login) {
-			$u = R::getRow("SELECT * FROM `user` WHERE `email` = ?", [$user_id]);
-			if ($u) {
-				$login = [
-					'email'    => $u['email'],
-					'password' => $u['pwd'],
-					'memberid' => $u['org_id'],
-					'type'     => $u['privileges'] ?? 'hospital'
-				];
+			try {
+				$u = R::getRow("SELECT * FROM `user` WHERE `email` = ?", [$user_id]);
+				if ($u) {
+					$login = [
+						'email'    => $u['email'],
+						'password' => $u['pwd'],
+						'memberid' => $u['org_id'],
+						'type'     => $u['privileges'] ?? 'hospital'
+					];
+				}
+			} catch (Exception $e) {
+				$login = null;
 			}
 		}
 

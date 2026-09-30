@@ -94,8 +94,14 @@ airx/
    ```
    > ⚠️ **Security Notice:** `AUTH_TOKEN` must be at least 24 characters and cannot be set to `'test'`. All endpoints enforce a strict server-level hard stop if invalid.
 
-4. **Database Auto-Migration**:
-   AirX automatically inspects and migrates missing schema columns (`predictions.method`, `predictions.accuracy`, `support.created_at`, `support.updated_at`, `facility_monthly_usage`) upon connection before database freezing.
+4. **Database Setup**:
+   Initialize your database using the provided schema and development seeds:
+   ```bash
+   mysql -u your_db_user -p -e "CREATE DATABASE IF NOT EXISTS airx CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   mysql -u your_db_user -p airx < database/schema.sql
+   mysql -u your_db_user -p airx < database/seeds.sql
+   ```
+   AirX also inspects and auto-migrates missing columns (`predictions.method`, `predictions.accuracy`, `support.created_at`, `support.updated_at`) on boot before database freezing.
 
 5. **Run Locally**:
    Using PHP's built-in development server:
@@ -299,6 +305,15 @@ Test coverage includes:
 * `AuthServiceTest`: Password hashing, bcrypt verification, and JWT generation/validation.
 * `PredictorServiceTest`: Standard and supervisor clinical weight algorithms, prediction persistence, and time-series calculations.
 * `CsvIngestionTest`: Facility monthly usage format verification and rejection of prohibited patient telemetry.
+
+---
+
+## 🤝 Community & Contributing
+
+We welcome contributions from the global open-source and healthcare tech community!
+* **Contributing Guidelines**: Please review our [Contributing Guide](CONTRIBUTING.md) for environment setup, coding standards, and PR workflows.
+* **Code of Conduct**: We are committed to providing a welcoming community. Please see our [Code of Conduct](CODE_OF_CONDUCT.md).
+* **Security Policy**: For responsible disclosure of security vulnerabilities, refer to [SECURITY.md](SECURITY.md).
 
 ---
 

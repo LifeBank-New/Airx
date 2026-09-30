@@ -207,8 +207,12 @@ $app->get('/hospital', function (Request $request, Response $response) {
 		$allUploadedData = R::findAll('facility_monthly_usage', 'hospital_id = ? ORDER BY period DESC', [$refid]);
 		$month = R::getAll("SELECT SUM(oxygen_used_m3) as estimate_need, MIN(DATE_FORMAT(CONCAT(period, '-01'), '%M')) AS month_name, MIN(DATE_FORMAT(CONCAT(period, '-01'), '%Y')) AS month_year FROM `facility_monthly_usage` WHERE hospital_id = ? GROUP BY period ORDER BY period DESC", [$refid]);
 
-		// Action A4: Wrap %Y and %M in MIN() and order by MIN(o.tym) DESC for ONLY_FULL_GROUP_BY compliance
-		$lastSixMonthsUsage = R::getAll("SELECT MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY MIN(o.tym) DESC", [$refid]);
+		$lastSixMonthsUsage = [];
+		try {
+			$lastSixMonthsUsage = R::getAll("SELECT MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters FROM `{$mainDb}`.oxygen_order AS o LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') ORDER BY MIN(o.tym) DESC", [$refid]);
+		} catch (Exception $e) {
+			$lastSixMonthsUsage = array_slice($month ?: [], 0, 6);
+		}
 
 		// Action A2: Remove hospitalID reference from predictions query
 		$lastSixMonthPredict = R::getAll("SELECT p.predictions AS total_cubic_meters, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%Y') AS month_year, DATE_FORMAT(FROM_UNIXTIME(p.tym), '%M') AS month_name FROM `predictions` p INNER JOIN (SELECT MAX(tym) AS max_tym FROM `predictions` WHERE hospital_id = ? AND FROM_UNIXTIME(tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(FROM_UNIXTIME(tym), '%Y-%m')) latest ON p.tym = latest.max_tym WHERE p.hospital_id = ? ORDER BY p.tym DESC", [$refid, $refid]);

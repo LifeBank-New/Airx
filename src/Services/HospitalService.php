@@ -19,17 +19,38 @@ class HospitalService
             [$hospitalId]
         );
 
-        $usageQuery = "SELECT 
-            MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, 
-            MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, 
-            SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters 
-        FROM `{$mainDb}`.oxygen_order AS o 
-        LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id 
-        WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? 
-        GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') 
-        ORDER BY MIN(o.tym) DESC";
+        $lastSixMonthsUsage = [];
+        try {
+            $usageQuery = "SELECT 
+                MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y')) AS month_year, 
+                MIN(DATE_FORMAT(FROM_UNIXTIME(o.tym), '%M')) AS month_name, 
+                SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters 
+            FROM `{$mainDb}`.oxygen_order AS o 
+            LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id 
+            WHERE FROM_UNIXTIME(o.tym) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) AND o.order_by = ? 
+            GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') 
+            ORDER BY MIN(o.tym) DESC";
 
-        $lastSixMonthsUsage = R::getAll($usageQuery, [$hospitalId]);
+            $lastSixMonthsUsage = R::getAll($usageQuery, [$hospitalId]);
+        } catch (\Exception $e) {
+            // Standalone fallback: use facility_monthly_usage
+            try {
+                $lastSixMonthsUsage = R::getAll(
+                    "SELECT 
+                        MIN(DATE_FORMAT(CONCAT(period, '-01'), '%Y')) AS month_year, 
+                        MIN(DATE_FORMAT(CONCAT(period, '-01'), '%M')) AS month_name, 
+                        SUM(oxygen_used_m3) AS total_cubic_meters 
+                    FROM `facility_monthly_usage` 
+                    WHERE hospital_id = ? 
+                    GROUP BY period 
+                    ORDER BY period DESC 
+                    LIMIT 6",
+                    [$hospitalId]
+                );
+            } catch (\Exception $ex) {
+                $lastSixMonthsUsage = [];
+            }
+        }
 
         $predictQuery = "SELECT 
             p.predictions AS total_cubic_meters, 
@@ -47,13 +68,23 @@ class HospitalService
 
         $lastSixMonthPredict = R::getAll($predictQuery, [$hospitalId, $hospitalId]);
 
-        $ordersQuery = "SELECT *, (SELECT size FROM `{$mainDb}`.oxygen WHERE oxygen.id = `{$mainDb}`.oxygen_order.product) AS size 
-        FROM `{$mainDb}`.oxygen_order 
-        WHERE order_by = ? 
-        ORDER BY tym DESC 
-        LIMIT 10";
+        $orders = [];
+        try {
+            $ordersQuery = "SELECT *, (SELECT size FROM `{$mainDb}`.oxygen WHERE oxygen.id = `{$mainDb}`.oxygen_order.product) AS size 
+            FROM `{$mainDb}`.oxygen_order 
+            WHERE order_by = ? 
+            ORDER BY tym DESC 
+            LIMIT 10";
 
-        $orders = R::getAll($ordersQuery, [$hospitalId]);
+            $orders = R::getAll($ordersQuery, [$hospitalId]);
+        } catch (\Exception $e) {
+            // Standalone fallback: use local oxygenorder table
+            try {
+                $orders = R::getAll("SELECT * FROM `oxygenorder` WHERE order_by = ? ORDER BY tym DESC LIMIT 10", [$hospitalId]);
+            } catch (\Exception $ex) {
+                $orders = [];
+            }
+        }
 
         return [
             'predict' => $predict,

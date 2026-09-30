@@ -101,11 +101,17 @@ class Database
     }
 
     /**
-     * Get the configured external/main database name (default: lifebank_plus).
+     * Get the configured external/main database name.
+     * Defaults to the current active DB if MAIN_DB_NAME is not set,
+     * allowing standalone single-database open-source deployments.
      */
     public static function getMainDbName(): string
     {
-        return $_ENV['MAIN_DB_NAME'] ?? $_ENV['LIFEBANK_DB_NAME'] ?? 'lifebank_plus';
+        return $_ENV['MAIN_DB_NAME'] 
+            ?? $_ENV['LIFEBANK_DB_NAME'] 
+            ?? $_ENV['DB_NAME'] 
+            ?? $_ENV['dbname'] 
+            ?? 'airx';
     }
 
     /**

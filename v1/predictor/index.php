@@ -282,17 +282,22 @@ $app->get('/hospital/predict', function (Request $request, Response $response) u
 		$mainDb = Database::getMainDbName();
 
 		// Fetch up to 12 most recent monthly usage records
-		$history = R::getAll("
-			SELECT 
-				DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') AS month,
-				SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters
-			FROM `{$mainDb}`.oxygen_order AS o
-			LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id
-			WHERE o.order_by = ?
-			GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m')
-			ORDER BY month DESC
-			LIMIT 12
-		", [$refid]);
+		$history = [];
+		try {
+			$history = R::getAll("
+				SELECT 
+					DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m') AS month,
+					SUM(o.qty * CAST(REPLACE(ox.size, ' Cubic Meter', '') AS DECIMAL(10,2))) AS total_cubic_meters
+				FROM `{$mainDb}`.oxygen_order AS o
+				LEFT JOIN `{$mainDb}`.oxygen AS ox ON o.product = ox.id
+				WHERE o.order_by = ?
+				GROUP BY DATE_FORMAT(FROM_UNIXTIME(o.tym), '%Y-%m')
+				ORDER BY month DESC
+				LIMIT 12
+			", [$refid]);
+		} catch (Exception $e) {
+			$history = [];
+		}
 
 		// Action A1 (Code A1): Fallback to facility_monthly_usage if no orders exist
 		if (empty($history)) {
